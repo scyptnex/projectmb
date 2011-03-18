@@ -13,7 +13,7 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
-public class Secure {
+public class SecureTest {
 	public static void main(String[] args) throws Exception {
 		
 		for(Provider p : Security.getProviders()){
