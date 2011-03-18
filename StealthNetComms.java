@@ -31,8 +31,14 @@ import java.io.*;
 /* StealthNetComms class *****************************************************/
 
 public class StealthNetComms {
-    public static final String SERVERNAME = "localhost";
-    public static final int SERVERPORT = 5616;
+	
+	//CHEESE
+    public static String getDefaultServerName(){
+    	return "localhost";
+    }
+    public static int getDefaultServerPort(){
+    	return 5616;
+    }
 
     private Socket commsSocket;             // communications socket
     private PrintWriter dataOut;            // output data stream

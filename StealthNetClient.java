@@ -31,6 +31,9 @@ import java.util.Hashtable;
 /* StealthNetClient Class Definition *****************************************/
 
 public class StealthNetClient {
+	
+	private JTextField txfServerAddress;//CHEESE
+	
 	private static JFrame clientFrame;
 	private JTextArea msgTextBox;
 	private JButton loginBtn;
@@ -221,6 +224,9 @@ public class StealthNetClient {
 				if (stealthComms == null) { login(); } else { logout(); }
 			}
 		});
+		
+		//CHEESE
+		txfServerAddress = new JTextField(StealthNetComms.getDefaultServerName() + ":" + StealthNetComms.getDefaultServerPort());
 
 		final JButton msgBtn = new JButton(new ImageIcon("msg.gif"));
 		msgBtn.setVerticalTextPosition(AbstractButton.BOTTOM);
@@ -231,17 +237,21 @@ public class StealthNetClient {
 			public void actionPerformed(ActionEvent e) { createSecret(); }
 		});
 
-		JPanel btnPane = new JPanel();
-		btnPane.setLayout(new GridLayout(1, 0));
+		//CHEESE
+		JPanel btnPane = new JPanel(new GridLayout(1, 0));
 		btnPane.setPreferredSize(new Dimension(180, 40));
-		btnPane.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
+		JPanel pnlSouth = new JPanel(new BorderLayout());
+		pnlSouth.setPreferredSize(new Dimension(180, 80));
+		pnlSouth.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
+		pnlSouth.add(txfServerAddress, BorderLayout.NORTH);
 		btnPane.add(loginBtn);
 		btnPane.add(msgBtn);
+		pnlSouth.add(btnPane, BorderLayout.CENTER);
 
 		JPanel bottomPane = new JPanel();
 		bottomPane.setLayout(new BorderLayout());
 		bottomPane.add(creditsPane, BorderLayout.NORTH);
-		bottomPane.add(btnPane, BorderLayout.SOUTH);
+		bottomPane.add(pnlSouth, BorderLayout.SOUTH);
 
 		// create top-level panel and add components
 
@@ -259,17 +269,29 @@ public class StealthNetClient {
 			return;
 		}
 
+		String serv = null;
+		int port = -1;
+		String[] satext = txfServerAddress.getText().split(":");
+		try{
+			serv = satext[0];
+			port = Integer.parseInt(satext[1]);
+		}
+		catch(Exception e){
+			msgTextBox.append("[*ERR*] Bad server address format\n");
+			return;
+		}
+		
 		try {
 			userID = JOptionPane.showInputDialog("Login:", userID);
 			if (userID == null) return;
 			stealthComms = new StealthNetComms();
-			stealthComms.initiateSession(new Socket(StealthNetComms.SERVERNAME, StealthNetComms.SERVERPORT));
+			stealthComms.initiateSession(new Socket(serv, port));
 			stealthComms.sendPacket(StealthNetPacket.CMD_LOGIN, userID);
 			stealthTimer.start();
 		} catch (UnknownHostException e) {
-			msgTextBox.append("[*ERR*] Unknown host: " + StealthNetComms.SERVERNAME + "\n");
+			msgTextBox.append("[*ERR*] Unknown host: " + serv + ":" + port + "\n");
 		} catch (IOException e) {
-			msgTextBox.append("[*ERR*] Could not connect to host: " + StealthNetComms.SERVERNAME + "\n");
+			msgTextBox.append("[*ERR*] Could not connect to host: " + serv + ":" + port + "\n");
 		}
 
 
