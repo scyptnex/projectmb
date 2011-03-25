@@ -3,10 +3,10 @@ import java.security.spec.*;
 import java.security.*;
 import java.math.*;
 
-import javax.crypto.Cipher;
-import javax.crypto.KeyGenerator;
-import javax.crypto.SecretKey;
+import javax.crypto.*;
 import javax.crypto.spec.*;
+
+import java.nio.charset.Charset;
 
 public class AESTest {
 	public static String asHex (byte buf[]) {
@@ -25,11 +25,23 @@ public class AESTest {
 
 	public static void main(String[] args) throws Exception {
 		byte[] sharedSecret = "Dead Beef is yum".getBytes();
-		MessageDigest md = MessageDigest.getInstance("SHA-1");
+		MessageDigest md = MessageDigest.getInstance("SHA-256");
 		byte[] hash = md.digest(sharedSecret);
+		System.out.println(hash.length);
 		SecureRandom rand = new SecureRandom(hash);
 		KeyGenerator kgen = KeyGenerator.getInstance("AES");
 		kgen.init(128); // 192 and 256 bits may not be available
+		
+		Mac hmacSha256 = Mac.getInstance("hmacSHA256");
+		SecretKeySpec secret = new SecretKeySpec("roflkey".getBytes(),"HmacSHA256");
+		hmacSha256.init(secret);
+		final Charset UTF8_CHARSET = Charset.forName("UTF-8");
+		byte[] mess = "You can do what you will, but step way over my blue sued shoes".getBytes(UTF8_CHARSET);
+		byte[] hmac = hmacSha256.doFinal(mess);
+		byte[] umac = md.digest(mess);
+		System.out.println("Original: l=" + mess.length + "\t \"" + new String(mess, UTF8_CHARSET) + "\"");
+		System.out.println("MAC:      l=" + hmac.length + "\t \"" + new String(hmac, UTF8_CHARSET) + "\"");
+		System.out.println("MD:       l=" + umac.length + "\t \"" + new String(umac, UTF8_CHARSET) + "\"");
 		
 		byte[] iv = new byte[16];
 		rand.nextBytes(iv);
