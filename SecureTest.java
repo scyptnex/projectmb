@@ -21,12 +21,14 @@ public class SecureTest {
 		}
 		System.out.println();
 		
+		/*
 		ERROR
 		Serious problem:
-			According to chinese remainer theorem (strange name), rsa is vulnerable if the same public exponent is continually used
+			According to chinese remainder theorem (strange name), rsa is vulnerable if the same public exponent is continually used
 			i have been unable to force these libraries to generate a public exponent other than 65537 (maybe its due to my computer)
 		We have to figure out how to stop it from doing this
 		ERROR
+		*/
 		
 		SecureRandom sra = new SecureRandom();
 		KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
