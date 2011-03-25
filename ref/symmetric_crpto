@@ -1,0 +1,8 @@
+byte[] sharedSecret;
+MessageDiest md = new MessageDigest("SHA-1");
+byte[] hash = md.digest(sharedSecret);
+SecureRandom rand = new SecureRandom(hash);
+byte[] key; //Need to specify size
+byte[] IV;
+rand.nextBytes(key);
+rand.nextBytes(IV);
