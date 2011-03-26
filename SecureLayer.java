@@ -44,21 +44,35 @@ public class SecureLayer {
 	private byte[] aesMacRaw;
 	
 	public static void main(String[] args) throws Exception{
+		long tmp = System.currentTimeMillis();
 		SecureLayer sl = new SecureLayer();
 		sl.selfInitAES();
 		sl.selfInitMac(true);
-		System.out.println(btos(sl.aesMacRaw));
+		sl.selfInitRSA();
+		sl.selfInitMac(false);
+		long init = System.currentTimeMillis() - tmp;
 		
+		tmp = System.currentTimeMillis();
 		String message = "This was a triumph.  I'm making a note here: 'HUGE SUCCESS!'.  It's hard to overstate my satisfaction";
 		byte[] mb = stob(message);
+		System.out.println(btos(mb));
+		long control = System.currentTimeMillis() - tmp;
+
+		tmp = System.currentTimeMillis();
 		byte[] eb = sl.sendAES(mb);
 		byte[] db = sl.receiveAES(eb);
-		byte[] mh = sl.getMac(mb, true);
+		System.out.println(btos(db));
+		long aes = System.currentTimeMillis() - tmp;
+
+		tmp = System.currentTimeMillis();
+		byte[] pubd = sl.descMyPublic();
+		sl.initRSAYou(pubd);
+		byte[] rsao = sl.sendRSA(mb);
+		byte[] rsai = sl.receiveRSA(rsao);
+		System.out.println(btos(rsai));
+		long rsa = System.currentTimeMillis() - tmp;
 		
-		System.out.println(mb.length + " - " + btos(mb));
-		System.out.println(eb.length + " - " + btos(eb));
-		System.out.println(db.length + " - " + btos(db));
-		System.out.println(mh.length + " - " + btos(mh));
+		System.out.println("Init: " + init + "\nControl: " + control + "\nAES: " + aes + "\nRSA: " + rsa);
 		
 	}
 	
@@ -89,6 +103,25 @@ public class SecureLayer {
 	 * These methods string together secure and non-secure functions to perform some useful task
 	 */
 	
+	//This method DOES CHECK THE PASSWORDED MAC
+	//but, not all rsa messages are sent with a passworded mac, so use this one with caution
+	public byte[] sendRSA(byte[] message) throws SecurityException{
+		return getRSAEncrypted(addMAC(message, false));
+	}
+	
+	//Some funny things:
+	//the message containing the passworded RSA mac is sent with a mac
+	//to decode that ONE message, the password is extracted manually and initialised in the layer, then the check for mac is performed
+	public byte[] receiveRSA(byte[] message) throws SecurityException{
+		byte[] dec = getRSADecrypted(message);
+		byte[] macPart = new byte[MAC_LENGTH/8];
+		byte[] messagePart = new byte[dec.length - macPart.length];
+		//presumes the mac was naively appended to the message, THIS MAY CHANGE
+		byteSplit(dec, messagePart, macPart);
+		if(!checkMAC(messagePart, macPart, false)) throw new SecurityException("RSA Message does not match its MAC");
+		return messagePart;
+	}
+	
 	//this one does the adition of the mac and encrypts for send
 	public byte[] sendAES(byte[] message) throws SecurityException{
 		return getAESEncrypted(addMAC(message, true));
@@ -100,7 +133,7 @@ public class SecureLayer {
 		byte[] messagePart = new byte[dec.length - macPart.length];
 		//presumes the mac was naively appended to the message, THIS MAY CHANGE
 		byteSplit(dec, messagePart, macPart);
-		if(!checkMAC(messagePart, macPart, true)) throw new SecurityException("Message does not match its MAC");
+		if(!checkMAC(messagePart, macPart, true)) throw new SecurityException("AES Message does not match its MAC");
 		return messagePart;
 	}
 	
@@ -255,11 +288,36 @@ public class SecureLayer {
 	 * if the function hasnt been initialised, a SecurityException will be thrown
 	 */
 	
+	public byte[] getRSAEncrypted(byte[] message) throws SecurityException{
+		if(outCipher == null) throw new SecurityException("Unable to encrypt before Receiver RSA key has been initialized");
+		try {
+			return outCipher.doFinal(message);
+		}
+		catch (BadPaddingException e) {
+			throw new SecurityException("RSA Encrypt: Bad Padding");
+		}
+		catch (IllegalBlockSizeException e) {
+			throw new SecurityException("RSA Encrypt: Illegal Block Size");
+		}
+	}
+	
+	public byte[] getRSADecrypted(byte[] message) throws SecurityException{
+		if(inCipher == null) throw new SecurityException("Unable to decrypt before Sender RSA key has been initialized");
+		try {
+			return inCipher.doFinal(message);
+		}
+		catch (BadPaddingException e) {
+			throw new SecurityException("RSA Decrypt: Bad Padding");
+		}
+		catch (IllegalBlockSizeException e) {
+			throw new SecurityException("RSA Decrypt: Illegal Block Size");
+		}
+	}
+	
 	//Note, this one does NOT automatically append the secure digest
 	public byte[] getAESEncrypted(byte[] message) throws SecurityException{
 		if(enc == null) throw new SecurityException("Unable to encrypt before AES key has been initialized");
 		try{
-			System.out.println(enc.getBlockSize());
 			return enc.doFinal(message);
 		}
 		catch(BadPaddingException exc){
@@ -366,10 +424,10 @@ public class SecureLayer {
 	public static RSAPrivateKey descToRSAPrivate(byte[] keyDesc) throws SecurityException{
 		try{
 			KeyFactory fac = KeyFactory.getInstance("RSA");
-			String keyMessage = btos(keyDesc);//exponent,space,modulus
+			String keyMessage = btos(keyDesc);//modulus,space,exponent
 			String[] parts = keyMessage.split(" ");
-			RSAPrivateKeySpec npk = new RSAPrivateKeySpec(new BigInteger(parts[1]), new BigInteger(parts[0]));
-			return (RSAPrivateKey)fac.generatePublic(npk);
+			RSAPrivateKeySpec npk = new RSAPrivateKeySpec(new BigInteger(parts[0]), new BigInteger(parts[1]));
+			return (RSAPrivateKey)fac.generatePrivate(npk);
 		}
 		catch(NoSuchAlgorithmException exc){
 			throw new SecurityException("RSA Private Desc: No Such Algorithm");
@@ -382,9 +440,9 @@ public class SecureLayer {
 	public static RSAPublicKey descToRSAPublic(byte[] keyDesc) throws SecurityException{
 		try{
 			KeyFactory fac = KeyFactory.getInstance("RSA");
-			String keyMessage = btos(keyDesc);//exponent,space,modulus
+			String keyMessage = btos(keyDesc);//modulus,space,exponent
 			String[] parts = keyMessage.split(" ");
-			RSAPublicKeySpec npk = new RSAPublicKeySpec(new BigInteger(parts[1]), new BigInteger(parts[0]));
+			RSAPublicKeySpec npk = new RSAPublicKeySpec(new BigInteger(parts[0]), new BigInteger(parts[1]));
 			return (RSAPublicKey)fac.generatePublic(npk);
 		}
 		catch(NoSuchAlgorithmException exc){
@@ -398,14 +456,14 @@ public class SecureLayer {
 	public static byte[] keyDesc(RSAPublicKey pub){
 		BigInteger ex = pub.getPublicExponent();
 		BigInteger mo = pub.getModulus();
-		String tmp = ex.toString() + " " + mo.toString();
+		String tmp = mo.toString() + " " + ex.toString();
 		return stob(tmp);
 	}
 	
 	public static byte[] keyDesc(RSAPrivateKey pub){
 		BigInteger ex = pub.getPrivateExponent();
 		BigInteger mo = pub.getModulus();
-		String tmp = ex.toString() + " " + mo.toString();
+		String tmp = mo.toString() + " " + ex.toString();
 		return stob(tmp);
 	}
 	
