@@ -41,6 +41,13 @@ public class SafeExchange {
 	 */
 	
 	private boolean initiator;
+	private boolean keySent, testSent, testPassed;
+	
+	private RSAPublicKey yourPublic;
+	private RSAPublicKey myPublic;
+	private RSAPrivateKey myPrivate;
+	
+	
 	
 	public SafeExchange(){
 		initiator = false;
@@ -89,10 +96,52 @@ public class SafeExchange {
 	/**
 	 * Ensure that starter decrypted the right mac password, if they did then they are who they say they are
 	 * prove to starter that i am recipient by correctly decrypting the IV and sending this to starter
+	 * AFTER THIS ROUND recipient is able to communicate in AES
 	 */
 	public byte[] doZeta(byte[] epsilon){
 		byte[] ret = new byte[0];
 		return ret;
 	}
 	
+	/**
+	 * Final RSA round, ensure the client correctly decrypted IV
+	 * After this round starter is able to communicate in AES
+	 */
+	public void getZeta(byte[] zeta){
+		
+	}
+	
+	/**
+	 * Encrypting AES
+	 */
+	public byte[] lockAES(byte[] message){
+		byte[] ret = new byte[0];
+		return ret;
+	}
+	
+	/**
+	 * Decrypting AES
+	 */
+	public byte[] unlockAES(byte[] message){
+		byte[] ret = new byte[0];
+		return ret;
+	}
+	
+	/**
+	 * Encrypting RSA
+	 * All RSA is encrypted using YOUR PUBLIC KEY
+	 */
+	private byte[] lockRSA(byte[] message){
+		byte[] ret = new byte[0];
+		return ret;
+	}
+	
+	/**
+	 * Decrypting RSA
+	 * All RSA is decrypted using MY PRIVATE KEY
+	 */
+	private byte[] unlocRSA(byte[] message){
+		byte[] ret = new byte[0];
+		return ret;
+	}
 }

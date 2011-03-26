@@ -32,13 +32,13 @@ public class SecureTest {
 		
 		SecureRandom sra = new SecureRandom();
 		KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-		keyPairGenerator.initialize(1024, sra);
+		keyPairGenerator.initialize(2048, sra);
 		KeyPair keyPair = keyPairGenerator.genKeyPair();
 
 		RSAPublicKey pks = (RSAPublicKey)(keyPair.getPublic());
 		String px = pks.getPublicExponent().toString();
 		String pm = pks.getModulus().toString();
-		System.out.println("PUBLIC:\n" + px + "\n" + pm + "\n");
+		System.out.println("PUBLIC (" + px.length() + "'" + pm.length() + "):\n" + px + "\n" + pm + "\n");
 
 		RSAPrivateKey prk = (RSAPrivateKey)(keyPair.getPrivate());
 		String rx = prk.getPrivateExponent().toString();
@@ -55,7 +55,7 @@ public class SecureTest {
 		System.out.println(new String(plainBytes));
 		byte[] cipherText = cipher.doFinal(plainBytes);
 		System.out.println(new String(cipherText));
-		cipher.init(Cipher.DECRYPT_MODE, keyPair.getPrivate());
+		cipher.init(Cipher.DECRYPT_MODE, prk);
 
 		byte[] decryptedBytes = cipher.doFinal(cipherText);
 		System.out.println(new String(decryptedBytes));

@@ -49,17 +49,24 @@ public class AESTest {
 
 		SecretKey skey = kgen.generateKey();
 		byte[] raw = skey.getEncoded();
+		
+		System.out.println(raw.length + " - key: " + asHex(raw));
 
 		SecretKeySpec skeySpec = new SecretKeySpec(raw, "AES");
 
 		Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
 
 		cipher.init(Cipher.ENCRYPT_MODE, skeySpec, ivs);
-
-		byte[] encrypted =
-			cipher.doFinal((args.length == 0 ?
-					"This is just an example" : args[0]).getBytes());
+		
+		byte[] mb = "This was a triumph.  I'm making a note here: 'HUGE SUCCESS!'.  It's hard to overstate my satisfaction".getBytes();
+		
+		System.out.println(mb.length);
+		
+		byte[] encrypted = cipher.doFinal(mb);
 		System.out.println("encrypted string: " + asHex(encrypted));
+		
+		encrypted = cipher.doFinal(mb);
+		System.out.println("encrypted string(" + encrypted.length + "): " + asHex(encrypted));
 
 		cipher.init(Cipher.DECRYPT_MODE, skeySpec, ivs);
 		byte[] original =
