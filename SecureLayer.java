@@ -1,3 +1,4 @@
+import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.security.interfaces.*;
 import java.security.spec.*;
@@ -10,6 +11,7 @@ import java.io.*;
 
 public class SecureLayer {
 	
+	public static final String RSA_STANDARD = "RSA/ECB/PKCS1Padding";
 	public static final String MAC_STANDARD = "HmacSHA256";
 	public static final String AES_STANDARD = "AES/CBC/PKCS5Padding";
 	public static final int AES_LENGTH = 128; // 192 and 256 bits may not be available
@@ -49,11 +51,15 @@ public class SecureLayer {
 		
 		String message = "This was a triumph.  I'm making a note here: 'HUGE SUCCESS!'.  It's hard to overstate my satisfaction";
 		byte[] mb = stob(message);
-		byte[] eb = sl.getAESEncrypted(mb);
-		byte[] db = sl.getAESDecrypted(eb);
-		System.out.println(btos(mb));
-		System.out.println(btos(eb));
-		System.out.println(btos(db));
+		byte[] eb = sl.sendAES(mb);
+		byte[] db = sl.receiveAES(eb);
+		byte[] mh = sl.getMac(mb, true);
+		
+		System.out.println(mb.length + " - " + btos(mb));
+		System.out.println(eb.length + " - " + btos(eb));
+		System.out.println(db.length + " - " + btos(db));
+		System.out.println(mh.length + " - " + btos(mh));
+		
 	}
 	
 	public SecureLayer(){
@@ -66,6 +72,7 @@ public class SecureLayer {
 		inCipher = null;
 		
 		rawKey = null;
+		initVec = null;
 		aesSpec = null;
 		enc = null;
 		dec = null;
@@ -76,10 +83,61 @@ public class SecureLayer {
 		aesMacRaw = null;
 	}
 	
-	/*
+	/**
+	 * Auto methods
+	 * These are the actual ones the user will call alot
+	 * These methods string together secure and non-secure functions to perform some useful task
+	 */
+	
+	//this one does the adition of the mac and encrypts for send
+	public byte[] sendAES(byte[] message) throws SecurityException{
+		return getAESEncrypted(addMAC(message, true));
+	}
+	
+	public byte[] receiveAES(byte[] message) throws SecurityException{
+		byte[] dec = getAESDecrypted(message);
+		byte[] macPart = new byte[MAC_LENGTH/8];
+		byte[] messagePart = new byte[dec.length - macPart.length];
+		//presumes the mac was naively appended to the message, THIS MAY CHANGE
+		byteSplit(dec, messagePart, macPart);
+		if(!checkMAC(messagePart, macPart, true)) throw new SecurityException("Message does not match its MAC");
+		return messagePart;
+	}
+	
+	public byte[] addMAC(byte[] message, boolean useAES) throws SecurityException{
+		//simple method
+		//was it not suggested in lectures we use MAC(AES(m + MAC(m))%p)+AES(MAC(m%q)) or something...
+		return byteJoin(message, getMac(message, useAES));
+	}
+	
+	public boolean checkMAC(byte[] message, byte[] mac, boolean useAES) throws SecurityException{
+		byte[] expectedMac = getMac(message, useAES);
+		for(int i=0; i<MAC_LENGTH/8; i++){
+			if(expectedMac[i] != mac[i]) return false;
+		}
+		return true;
+	}
+	
+	
+	/**
 	 * Self init methods
 	 * These rely on a good and random secure random, its as random as it'll ever be after initialisation
 	 */
+	
+	public void selfInitRSA() throws SecurityException{
+		try{
+			KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+			keyPairGenerator.initialize(RSA_LENGTH, rand);
+			KeyPair keyPair = keyPairGenerator.genKeyPair();
+			byte[] pubDesc = keyDesc((RSAPublicKey)keyPair.getPublic());
+			byte[] priDesc = keyDesc((RSAPrivateKey)keyPair.getPrivate());
+			initRSAMe(pubDesc, priDesc);
+		}
+		catch (NoSuchAlgorithmException e) {
+			throw new SecurityException("RSA Init: No Such Algorithm");
+		}
+	}
+	
 	public void selfInitAES() throws SecurityException{
 		try{
 			KeyGenerator kgen = KeyGenerator.getInstance("AES");
@@ -100,16 +158,51 @@ public class SecureLayer {
 	}
 	
 	
-	/*
+	/**
 	 * Initialisers, adds to the security layer as parts become available
 	 * The security layer starts non functional, each init gives it a new ability
 	 */
 	
-	public void initAES(byte[] key, byte[] iv) throws SecurityException{
+	public void initRSAYou(byte[] keyDesc) throws SecurityException{
 		try{
-			rawKey = byteClone(key);
+			yourPublic = descToRSAPublic(keyDesc);
+			outCipher = Cipher.getInstance(RSA_STANDARD);
+			outCipher.init(Cipher.ENCRYPT_MODE, yourPublic);
+		}
+		catch (InvalidKeyException e) {
+			throw new SecurityException("RSA me Init: Invalid Key");
+		}
+		catch (NoSuchAlgorithmException e) {
+			throw new SecurityException("RSA me Init: No Such Algorithm");
+		}
+		catch (NoSuchPaddingException e) {
+			throw new SecurityException("RSA me Init: No Such Padding");
+		}
+	}
+	
+	public void initRSAMe(byte[] pubDesc, byte[] priDesc) throws SecurityException{
+		try{
+			myPublic = descToRSAPublic(pubDesc);
+			myPrivate = descToRSAPrivate(priDesc);
+			inCipher = Cipher.getInstance(RSA_STANDARD);
+			inCipher.init(Cipher.DECRYPT_MODE, myPrivate);
+		}
+		catch (InvalidKeyException e) {
+			throw new SecurityException("RSA me Init: Invalid Key");
+		}
+		catch (NoSuchAlgorithmException e) {
+			throw new SecurityException("RSA me Init: No Such Algorithm");
+		}
+		catch (NoSuchPaddingException e) {
+			throw new SecurityException("RSA me Init: No Such Padding");
+		}
+	}
+	
+	public void initAES(byte[] aesDesc, byte[] ivDesc) throws SecurityException{
+		try{
+			rawKey = byteClone(aesDesc);
 			
-			initVec = byteClone(iv);
+			initVec = byteClone(ivDesc);
 			AlgorithmParameterSpec ivs = new IvParameterSpec(initVec);
 			
 			aesSpec = new SecretKeySpec(rawKey, "AES");
@@ -118,7 +211,7 @@ public class SecureLayer {
 			dec = Cipher.getInstance(AES_STANDARD);
 			
 			enc.init(Cipher.ENCRYPT_MODE, aesSpec, ivs);
-			enc.init(Cipher.DECRYPT_MODE, aesSpec, ivs);
+			dec.init(Cipher.DECRYPT_MODE, aesSpec, ivs);
 		}
 		catch(NoSuchPaddingException exc){
 			throw new SecurityException("AES Init: No Such Padding");
@@ -134,20 +227,20 @@ public class SecureLayer {
 		}
 	}
 	
-	public void initMac(byte[] pass, boolean useAES) throws SecurityException{
+	public void initMac(byte[] macDesc, boolean useAES) throws SecurityException{
 		try{
 			Mac hmac = Mac.getInstance(MAC_STANDARD);
-			SecretKeySpec secret = new SecretKeySpec(pass, MAC_STANDARD);
+			SecretKeySpec secret = new SecretKeySpec(macDesc, MAC_STANDARD);
 			hmac.init(secret);
 			if(useAES){
 				if(aesMac != null) System.err.println("Warning: overwriting AES MAC");
 				aesMac = hmac;
-				aesMacRaw = byteClone(pass);
+				aesMacRaw = byteClone(macDesc);
 			}
 			else{
 				if(rsaMac != null) System.err.println("Warning: overwriting RSA MAC");
 				rsaMac = hmac;
-				rsaMacRaw = byteClone(pass);
+				rsaMacRaw = byteClone(macDesc);
 			}
 		}
 		catch(Exception e){
@@ -156,7 +249,7 @@ public class SecureLayer {
 	}
 	
 	
-	/*
+	/**
 	 * Getters
 	 * These perform an actual security function
 	 * if the function hasnt been initialised, a SecurityException will be thrown
@@ -167,7 +260,6 @@ public class SecureLayer {
 		if(enc == null) throw new SecurityException("Unable to encrypt before AES key has been initialized");
 		try{
 			System.out.println(enc.getBlockSize());
-			wtf i get an illegal block size here
 			return enc.doFinal(message);
 		}
 		catch(BadPaddingException exc){
@@ -178,6 +270,7 @@ public class SecureLayer {
 		}
 	}
 	
+	//Note, this one does NOT check the message contents against its digest
 	public byte[] getAESDecrypted(byte[] message) throws SecurityException{
 		if(dec == null) throw new SecurityException("Unable to decrypt before AES key has been initialized");
 		try{
@@ -195,6 +288,43 @@ public class SecureLayer {
 		Mac thisMac = useAES ? aesMac : rsaMac;
 		if(thisMac == null) throw new SecurityException("Unable to generate MAC before the MAC password has been initialized");
 		return thisMac.doFinal(message);
+	}
+	
+	
+	/**
+	 * DESCRIBERS
+	 * Slight variation on the getters, these give information about my known key state
+	 */
+	
+	public byte[] descIV() throws SecurityException{
+		if(initVec == null) throw new SecurityException("cannot describe IV before it is initialised");
+		return byteClone(initVec);
+	}
+	
+	public byte[] descMAC(boolean useAES) throws SecurityException{
+		byte[] typ = useAES ? aesMacRaw : rsaMacRaw;
+		if(typ == null) throw new SecurityException("cannot describe MAC before it is initialised");
+		return byteClone(typ);
+	}
+	
+	public byte[] descAES() throws SecurityException{
+		if(rawKey == null) throw new SecurityException("cannot describe AES Key before it is initialised");
+		return byteClone(rawKey);
+	}
+	
+	public byte[] descMyPublic() throws SecurityException{
+		if(myPublic == null) throw new SecurityException("cannot describe My RSA Public before it is initialised");
+		return keyDesc(myPublic);
+	}
+	
+	public byte[] descMyPrivate() throws SecurityException{
+		if(myPrivate == null) throw new SecurityException("cannot describe My RSA Private before it is initialised");
+		return keyDesc(myPrivate);
+	}
+	
+	public byte[] descYourPublic() throws SecurityException{
+		if(yourPublic == null) throw new SecurityException("cannot describe Your RSA Private before it is initialised");
+		return keyDesc(yourPublic);
 	}
 	
 	/**
@@ -217,6 +347,66 @@ public class SecureLayer {
 		for(int i=0; i<a.length; i++) ret[i] = a[i];
 		for(int i=0; i<b.length; i++) ret[i+a.length] = b[i];
 		return ret;
+	}
+	
+	public static void byteSplit(byte[] in, byte[] a, byte[] b){
+		for(int i=0; i<in.length; i++){
+			if(i < a.length){
+				a[i] = in[i];
+			}
+			else if(i < a.length + b.length){
+				b[i-a.length] = in[i];
+			}
+			else{
+				break;
+			}
+		}
+	}
+	
+	public static RSAPrivateKey descToRSAPrivate(byte[] keyDesc) throws SecurityException{
+		try{
+			KeyFactory fac = KeyFactory.getInstance("RSA");
+			String keyMessage = btos(keyDesc);//exponent,space,modulus
+			String[] parts = keyMessage.split(" ");
+			RSAPrivateKeySpec npk = new RSAPrivateKeySpec(new BigInteger(parts[1]), new BigInteger(parts[0]));
+			return (RSAPrivateKey)fac.generatePublic(npk);
+		}
+		catch(NoSuchAlgorithmException exc){
+			throw new SecurityException("RSA Private Desc: No Such Algorithm");
+		}
+		catch (InvalidKeySpecException e) {
+			throw new SecurityException("RSA Private Desc: Invalid Key Spec");
+		}
+	} 
+	
+	public static RSAPublicKey descToRSAPublic(byte[] keyDesc) throws SecurityException{
+		try{
+			KeyFactory fac = KeyFactory.getInstance("RSA");
+			String keyMessage = btos(keyDesc);//exponent,space,modulus
+			String[] parts = keyMessage.split(" ");
+			RSAPublicKeySpec npk = new RSAPublicKeySpec(new BigInteger(parts[1]), new BigInteger(parts[0]));
+			return (RSAPublicKey)fac.generatePublic(npk);
+		}
+		catch(NoSuchAlgorithmException exc){
+			throw new SecurityException("RSA Public Desc: No Such Algorithm");
+		}
+		catch (InvalidKeySpecException e) {
+			throw new SecurityException("RSA Public Desc: Invalid Key Spec");
+		}
+	}
+	
+	public static byte[] keyDesc(RSAPublicKey pub){
+		BigInteger ex = pub.getPublicExponent();
+		BigInteger mo = pub.getModulus();
+		String tmp = ex.toString() + " " + mo.toString();
+		return stob(tmp);
+	}
+	
+	public static byte[] keyDesc(RSAPrivateKey pub){
+		BigInteger ex = pub.getPrivateExponent();
+		BigInteger mo = pub.getModulus();
+		String tmp = ex.toString() + " " + mo.toString();
+		return stob(tmp);
 	}
 	
 	public static byte[] stob(String s){
