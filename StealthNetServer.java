@@ -25,9 +25,10 @@ import java.net.*;
 
 /* StealthNetServer Class Definition *****************************************/
 
-public class StealthNetServer {
+public class StealthNetServer {	
 	public static void main(String[] args) throws IOException {
 		ServerSocket svrSocket = null;
+		SecureLayer secureLayer;
 		
 		//CHEESE
 		int sport = StealthNetComms.getDefaultServerPort();
@@ -45,8 +46,15 @@ public class StealthNetServer {
 		}
 
 		System.out.println("Server [port:" + svrSocket.getLocalPort() + "] online...");
+		
+		System.out.println("Initialising RSA");
+		secureLayer = new SecureLayer();
+		secureLayer.selfInitRSA();
+		
+		System.out.println("RSA Inited " + secureLayer.descMyPublic());
+		
 		while (true) {
-			new StealthNetServerThread(svrSocket.accept()).start();
+			new StealthNetServerThread(svrSocket.accept(), secureLayer).start();
 			System.out.println("Server accepted connection...");
 		}
 	}

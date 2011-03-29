@@ -43,11 +43,29 @@ public class StealthNetComms {
 	private Socket commsSocket;             // communications socket
 	private PrintWriter dataOut;            // output data stream
 	private BufferedReader dataIn;          // input data stream
+	private SecureLayer secureLayer;
+	private boolean secure;
 
 	public StealthNetComms() {
 		commsSocket = null;
 		dataIn = null;
 		dataOut = null;
+		secureLayer = new SecureLayer();
+		try {
+			secureLayer.selfInitRSA();
+		} catch (Exception e) {
+			System.out.println("Problem initialising RSA.");
+			//TODO Do something better here?
+		}
+		secure = false;
+	}
+	
+	public StealthNetComms(SecureLayer sl) {
+		commsSocket = null;
+		dataIn = null;
+		dataOut = null;
+		secureLayer = sl;
+		secure = false;
 	}
 
 	protected void finalize() throws IOException {
@@ -66,12 +84,54 @@ public class StealthNetComms {
 			dataOut = new PrintWriter(commsSocket.getOutputStream(), true);
 			dataIn = new BufferedReader(new InputStreamReader(
 					commsSocket.getInputStream()));
+			
+			StealthNetPacket pckt = new StealthNetPacket();
+			boolean done = false;
+			while (!done) {
+				pckt = recvPacket();
+				switch (pckt.command) {
+				case StealthNetPacket.CMD_PUBLICKEY:
+					//System.out.println("init handshake recv");
+					secureLayer.initRSAYou(pckt.data);
+					
+					sendPacket(StealthNetPacket.CMD_PUBLICKEY, secureLayer.descMyPublic());
+					break;
+					
+				case StealthNetPacket.CMD_MAC:
+					//System.out.println("MAC received");
+					
+					secureLayer.initMac(secureLayer.getRSADecrypted(pckt.data), true);
+					secureLayer.selfInitAES();
+					
+					System.out.println(SecureLayer.btos(secureLayer.descAES()));
+					System.out.println(SecureLayer.btos(secureLayer.descIV()));
+										
+					byte[] msg = SecureLayer.byteJoin(secureLayer.descAES(), secureLayer.descIV());
+					msg = SecureLayer.byteJoin(msg, secureLayer.getRSADecrypted(pckt.data));
+					
+					sendPacket(StealthNetPacket.CMD_INITAES, secureLayer.getRSAEncrypted(msg));
+					
+					break;
+					
+				case StealthNetPacket.CMD_INITAES:
+					//System.out.println(SecureLayer.btos(secureLayer.getRSADecrypted(pckt.data)));
+					
+					//TODO Check IV
+					done = true;
+					secure = true;
+					break;
+					
+				default:
+					done = true;
+				}
+			}
+			
 		} catch (Exception e) {
 			System.err.println("Connection terminated.");
 			System.exit(1);
 		}
 
-		return true;
+		return secure;
 	}
 
 	public boolean acceptSession(Socket socket) {
@@ -81,12 +141,64 @@ public class StealthNetComms {
 			dataOut = new PrintWriter(commsSocket.getOutputStream(), true);
 			dataIn = new BufferedReader(new InputStreamReader(
 					commsSocket.getInputStream()));
+			
+			if (secureLayer != null)
+			{
+				System.out.println(secureLayer.descMyPublic());
+				sendPacket(StealthNetPacket.CMD_PUBLICKEY, secureLayer.descMyPublic());
+			}
+			
+			StealthNetPacket pckt = new StealthNetPacket();
+			boolean done = false;
+			while (!done) {
+				pckt = recvPacket();
+				switch (pckt.command) {
+				case StealthNetPacket.CMD_PUBLICKEY:
+					//System.out.println("Public key received");
+					secureLayer.initRSAYou(pckt.data);
+					
+					secureLayer.selfInitMac(true);
+					
+					//System.out.println(SecureLayer.btos(secureLayer.descMAC(true)));
+					
+					sendPacket(StealthNetPacket.CMD_MAC, secureLayer.getRSAEncrypted(secureLayer.descMAC(true)));
+					
+					break;
+					
+				case StealthNetPacket.CMD_INITAES:
+					System.out.println("Initialising AES");
+					byte[] key = new byte[16];
+					byte[] iv = new byte[16];
+					byte[] tmp = new byte[32];
+					byte[] mac = new byte[32];
+					
+					SecureLayer.byteSplit(secureLayer.getRSADecrypted(pckt.data), tmp, mac);
+					SecureLayer.byteSplit(tmp, key, iv);
+					
+					//System.out.println(SecureLayer.btos(mac));
+					System.out.println(SecureLayer.btos(key));
+					System.out.println(SecureLayer.btos(iv));
+					
+					//TODO mac check
+					
+					secureLayer.initAES(key, iv);
+					
+					sendPacket(StealthNetPacket.CMD_INITAES, secureLayer.getRSAEncrypted(iv));
+					
+					done = true;
+					secure = true;
+					
+					break;
+					
+				default:
+					done = true;
+				}
+			}
 		} catch (Exception e) {
 			System.err.println("Connection terminated.");
 			System.exit(1);
 		}
-
-		return true;
+		return secure;
 	}
 
 	public boolean terminateSession() {
@@ -128,16 +240,35 @@ public class StealthNetComms {
 	public boolean sendPacket(StealthNetPacket pckt) {
 		if (dataOut == null)
 			return false;
-		System.out.println("SEND: " + new String(pckt.data) + " = " + pckt.toString());
-		dataOut.println(pckt.toString());
+		//System.out.println("SEND: " + new String(pckt.data) + " = " + pckt.toString());
+		if (secure) {
+			try {
+				System.out.println(SecureLayer.btos(secureLayer.getAESEncrypted(SecureLayer.stob("this is a test"))));
+				System.out.println(SecureLayer.btos(secureLayer.getAESDecrypted(secureLayer.getAESEncrypted(SecureLayer.stob("this is a test")))));
+				dataOut.println(SecureLayer.btos(secureLayer.getAESEncrypted(SecureLayer.stob("this is a test"))));
+			} catch (SecureLayer.SecurityException e) {
+				System.out.println("Security failed on comms");
+			}
+		} else {
+			dataOut.println(pckt.toString());
+		}
 		return true;
 	}
 
 	public StealthNetPacket recvPacket() throws IOException {
 		StealthNetPacket pckt = null;
 		String str = dataIn.readLine();
-		pckt = new StealthNetPacket(str);
-		System.out.println("RECV: " + new String(pckt.data) + " = " + pckt.toString());
+		if (secure) {
+			System.out.println("secure");
+			System.out.println(str);
+			System.out.println(SecureLayer.stob(str));
+			System.out.println("test");
+			System.out.println(secureLayer.getAESDecrypted(SecureLayer.stob(str)));
+			System.out.println("test");
+		} else {
+			pckt = new StealthNetPacket(str);
+		}
+		//System.out.println("RECV: " + new String(pckt.data) + " = " + pckt.toString());
 		return pckt;
 	}
 

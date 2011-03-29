@@ -302,7 +302,9 @@ public class SecureLayer {
 	}
 	
 	public byte[] getRSADecrypted(byte[] message) throws SecurityException{
-		if(inCipher == null) throw new SecurityException("Unable to decrypt before Sender RSA key has been initialized");
+		if(inCipher == null) {
+			throw new SecurityException("Unable to decrypt before Sender RSA key has been initialized");
+		}
 		try {
 			return inCipher.doFinal(message);
 		}
@@ -330,14 +332,20 @@ public class SecureLayer {
 	
 	//Note, this one does NOT check the message contents against its digest
 	public byte[] getAESDecrypted(byte[] message) throws SecurityException{
-		if(dec == null) throw new SecurityException("Unable to decrypt before AES key has been initialized");
+		if(dec == null) {
+			System.out.println("Not inited");
+			throw new SecurityException("Unable to decrypt before AES key has been initialized");
+		}
 		try{
+			System.out.println("decrypt");
 			return dec.doFinal(message);
 		}
 		catch(BadPaddingException exc){
+			System.out.println("Padding");
 			throw new SecurityException("AES Decrypt: Bad Padding");
 		}
 		catch(IllegalBlockSizeException exc){
+			System.out.println("Block size");
 			throw new SecurityException("AES Decrypt: Illegal Block Size");
 		}
 	}

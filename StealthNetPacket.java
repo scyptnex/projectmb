@@ -29,6 +29,9 @@ public class StealthNetPacket {
     public static final byte CMD_CREATESECRET = 0x07;
     public static final byte CMD_SECRETLIST = 0x08;
     public static final byte CMD_GETSECRET = 0x09;
+    public static final byte CMD_PUBLICKEY = 0x0A;
+    public static final byte CMD_MAC = 0x0B;
+    public static final byte CMD_INITAES = 0x0C;
    
     
     private static final char[] HEXTABLE =
@@ -93,6 +96,13 @@ public class StealthNetPacket {
         }
 
         return str;
+    }
+    
+    public byte[] toBytes() {
+    	byte[] ret = new byte[data.length + 1];
+    	ret[0] = command;
+    	for (int i=0; i<data.length; i++) ret[i+1] = data[i];
+    	return ret;
     }
 
     

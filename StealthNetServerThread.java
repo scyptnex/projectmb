@@ -45,11 +45,14 @@ public class StealthNetServerThread extends Thread {
     
     private String userID = null;
     private StealthNetComms stealthComms = null;
+    private SecureLayer secureLayer;
 
-    public StealthNetServerThread(Socket socket) {
+    public StealthNetServerThread(Socket socket, SecureLayer sl) {
         super("StealthNetServerThread");
-        stealthComms = new StealthNetComms();
+        secureLayer = sl;
+        stealthComms = new StealthNetComms(sl);
         stealthComms.acceptSession(socket);
+        System.out.println("Blah");
     }
 
     protected void finalise() throws IOException {

@@ -24,6 +24,7 @@ import java.io.*;
 import java.net.*;
 import javax.swing.*;
 import javax.swing.table.*;
+
 import java.awt.*;
 import java.awt.event.*;
 import java.util.Hashtable;
@@ -42,6 +43,7 @@ public class StealthNetClient {
 	private String userID = null;
 	private JTable buddyTable = null, secretTable = null;
 	private DefaultTableModel buddyListData = null, secretListData = null;
+	private SecureLayer secureLayer;
 	JTextField creditsBox;
 
 	private int credits = 100;		// CHANGEME: Give them 100 credits for demonstration purposes
@@ -53,7 +55,12 @@ public class StealthNetClient {
 
 	static private Hashtable secretDescriptions = new Hashtable();
 
-	public StealthNetClient() {
+	public StealthNetClient() throws SecureLayer.SecurityException {
+		secureLayer = new SecureLayer();
+		secureLayer.selfInitRSA();
+		
+		System.out.println(secureLayer.descMyPublic());
+		
 		stealthTimer = new javax.swing.Timer(100, new ActionListener() {
 			public void actionPerformed(ActionEvent e) { processPackets(); }
 		});
@@ -648,7 +655,7 @@ public class StealthNetClient {
 		stealthTimer.start();
 	}
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws SecureLayer.SecurityException {
 		try {
 			UIManager.setLookAndFeel(
 					UIManager.getCrossPlatformLookAndFeelClassName());
