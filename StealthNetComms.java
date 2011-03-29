@@ -110,7 +110,6 @@ public class StealthNetComms {
 	}
 
 	public boolean sendPacket(byte command, String data) {
-		System.out.println("String data: " + data);
 		return sendPacket(command, data.getBytes());
 	}
 
@@ -129,6 +128,7 @@ public class StealthNetComms {
 	public boolean sendPacket(StealthNetPacket pckt) {
 		if (dataOut == null)
 			return false;
+		System.out.println("SEND: " + new String(pckt.data) + " = " + pckt.toString());
 		dataOut.println(pckt.toString());
 		return true;
 	}
@@ -137,6 +137,7 @@ public class StealthNetComms {
 		StealthNetPacket pckt = null;
 		String str = dataIn.readLine();
 		pckt = new StealthNetPacket(str);
+		System.out.println("RECV: " + new String(pckt.data) + " = " + pckt.toString());
 		return pckt;
 	}
 
