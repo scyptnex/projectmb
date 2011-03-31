@@ -292,20 +292,22 @@ public class StealthNetClient {
 			userID = JOptionPane.showInputDialog("Login:", userID);
 			if (userID == null) return;
 			stealthComms = new StealthNetComms();
-			stealthComms.initiateSession(new Socket(serv, port));
-			stealthComms.sendPacket(StealthNetPacket.CMD_LOGIN, userID);
-			stealthTimer.start();
+			if (stealthComms.initiateSession(new Socket(serv, port)))
+			{
+				stealthComms.sendPacket(StealthNetPacket.CMD_LOGIN, userID);
+				stealthTimer.start();
+				msgTextBox.append("Connected to stealthnet.\n");
+				clientFrame.setTitle("stealthnet [" + userID + "]");
+				loginBtn.setIcon(new ImageIcon("logout.gif"));
+				loginBtn.setToolTipText("Logout");
+			} else {
+				msgTextBox.append("[*ERR*] Couldn't establish secure communication.\n");
+			}
 		} catch (UnknownHostException e) {
 			msgTextBox.append("[*ERR*] Unknown host: " + serv + ":" + port + "\n");
 		} catch (IOException e) {
 			msgTextBox.append("[*ERR*] Could not connect to host: " + serv + ":" + port + "\n");
 		}
-
-
-		msgTextBox.append("Connected to stealthnet.\n");
-		clientFrame.setTitle("stealthnet [" + userID + "]");
-		loginBtn.setIcon(new ImageIcon("logout.gif"));
-		loginBtn.setToolTipText("Logout");
 	}
 
 	private synchronized void logout() {
@@ -462,7 +464,7 @@ public class StealthNetClient {
 		// wait for user to connect and open chat window
 		try {
 			chatSocket.setSoTimeout(2000);  // 2 second timeout
-			StealthNetComms snComms = new StealthNetComms();
+			StealthNetComms snComms = new StealthNetComms(new SecureLayer(secureLayer));
 			snComms.acceptSession(chatSocket.accept());
 			new StealthNetChat(userID, snComms).start();
 		} catch (Exception e) {
@@ -511,7 +513,7 @@ public class StealthNetClient {
 		// wait for user to connect, then start file transfer
 		try {
 			ftpSocket.setSoTimeout(2000);  // 2 second timeout
-			StealthNetComms snComms = new StealthNetComms();
+			StealthNetComms snComms = new StealthNetComms(new SecureLayer(secureLayer));
 			snComms.acceptSession(ftpSocket.accept());
 			new StealthNetFileTransfer(snComms,
 					fileOpen.getDirectory() + fileOpen.getFile(), true).start();
@@ -553,7 +555,7 @@ public class StealthNetClient {
 					iAddr = iAddr.substring(iAddr.lastIndexOf("@") + 1);
 					iPort = new Integer(iAddr.substring(iAddr.lastIndexOf(":") + 1));
 					iAddr = iAddr.substring(0, iAddr.lastIndexOf(":"));
-					snComms = new StealthNetComms();
+					snComms = new StealthNetComms(new SecureLayer(secureLayer));
 					snComms.initiateSession(new Socket(iAddr, iPort.intValue()));
 					new StealthNetChat(userID, snComms).start();
 					break;
@@ -566,7 +568,7 @@ public class StealthNetClient {
 					iPort = new Integer(iAddr.substring(iAddr.lastIndexOf(":") + 1));
 					iAddr = iAddr.substring(0, iAddr.lastIndexOf(":"));
 
-					snComms = new StealthNetComms();
+					snComms = new StealthNetComms(new SecureLayer(secureLayer));
 					snComms.initiateSession(new Socket(iAddr, iPort.intValue()));
 
 					FileDialog fileSave = new FileDialog(clientFrame, "Save As...", FileDialog.SAVE);
