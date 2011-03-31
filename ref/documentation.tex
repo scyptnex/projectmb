@@ -6,7 +6,7 @@
 		nhol8058@uni.sydney.edu.au
 	\and
 		Alex Legg\\
-		alexremembertoaddyournumber\\
+		308148371\\
 		aleg1081@uni.sydney.edu.au
 }
 \title{StealthNet - Security for the Freedom Fighters}
@@ -28,16 +28,16 @@
 The communication layer is quite simple.  The server facilitates connection to clients and between them, using command/data messages.
 Clients are kept up-to-date with currently logged in peers and available secrets.
 Clients may chat with peers, send them files, or download ``secret'' files from a peer if they are online, however for the time being this functionality is limited.
-The server facilitates client-client communication by sending the nature of the request and the addresses of the clients tpo each other, at which point they communicate with each other without server intervention.
+The server facilitates client-client communication by sending the nature of the request and the addresses of the clients to each other, at which point they communicate with each other without server intervention.
 
 \subsection{Security}
 In order to ensure security of the system we must prevent secret and possibly damaging information from being read over the wire.
-Before modification all informationw as encoded into hex and sent in the clear, however a new feature of StealthNet, the ``SecureLayer'', is used to keep communications secret.
+Before modification all information is encoded into hex and sent in the clear, however a new feature of StealthNet, the ``SecureLayer'', is used to keep communications secret.
 The SecureLayer controls 2 core functions:
 \begin{itemize}
 	\item 2048 bit RSA is used for handshaking.  This public-key method is used to establish initial shared secrets, however it is too slow and limiting to be used generally.
-	\item 128 bit AES with CBC and Secure padding is used for general communication.  After handshaking, the shared secret is established: an IV, the AES key, and a 256 bit MAC, which are used for all future communication
-	\item 265 bit MACs are used to ensure integrity.  These are simplky appended to the message before encryption.
+	\item 128 bit AES with CBC and Secure padding is used for general communication.  After handshaking, the shared secret is established: an IV, the AES key, and a 256 bit MAC, which are used for all future communication.
+	\item 265 bit MACs are used to ensure integrity.  These are simply appended to the message before encryption.
 \end{itemize}
 The AES and MAC usage is fairly straightforward.  Data is encrypted and decrypted symmetrically at both ends, and the data packet is checked against the MAC to prevent integrity attacks.
 
@@ -49,8 +49,8 @@ For this description nodes A and B are attempting to open a secure channel, B in
 	\item A sends her RSA Public Key in the clear.
 	\item B Receives A's RSA Public Key, B Sends his an RSA Public key in the clear.
 	\item A Receives B's public key. A randomly generates a MAC Password and sends it, encrypted by B's public key.
-	\item B decrypt's the MAC.  B randomly generates an AES Key and IV (128 bits each) and sends all 3 items to A, encrypted with A's public key.
-	\item A decrypt's the AES Key, IV and Mac.  A ensures B has correctly decrypted the MAC, and reports a problem otherwise.  A sends the IV Alone, encrypted by B's public key.
+	\item B decrypts the MAC.  B randomly generates an AES Key and IV (128 bits each) and sends all 3 items to A, encrypted with A's public key.
+	\item A decrypts the AES Key, IV and Mac.  A ensures B has correctly decrypted the MAC, and reports a problem otherwise.  A sends the IV alone, encrypted by B's public key.
 	\item B decrypts the IV.  B Ensures A has correctly decrypted the IV, and reports a problem otherwise.
 	\item AES communication begins, using the shared secret.
 \end{enumerate}
@@ -64,7 +64,7 @@ This 3-stage protocol provides several important security properties.
 \section {Guarantees}
 \subsection{Authentication}
 The handshaking protocol excludes non-authentic clients/servers from communicating.
-Each party must be able to decrypt a random piece of data sent to them by the other, this is a computatioaly intractable task for anyone who does not hold the private pair of the advertised public key.
+Each party must be able to decrypt a random piece of data sent to them by the other, this is a computationally intractable task for anyone who does not hold the private pair of the advertised public key.
 Since AES communication does not commence until both parties have not merely done this, but proven to the other that they have done this, it is guaranteed that communicating parties must hold the private pair of their advertised public keys, and so must be authentic.
 With minor modifications this could be extended to trusted authenticity, which would prevent man-in-the-middle attacks.
 However since more serious machinery would be needed to provide at least one minimally-trusted component of the network this has not been implemented.
@@ -86,6 +86,7 @@ This prevents replay because simply replaying one half of the interactions is no
 For example, if Eve attempts to pretend to be Alice and so gain access to Alice's account, Eve must first establish connection to the server.
 However to complete handshaking, the server will make eve Decrypt at least one message and prove that she did by sending the correctly decrypted data back, But since that data is randomly generated (and highly unlikely the same as last time) if Eve simply resen's Alice's last reply the server will notice and cancel the session.
 This is true also of attempting to be the server to a client, and pretending to be one client to another.
-Since no secure information is given out during handshaking, stopping replay attacks here is sufficient.  All data after handshaking is encrypted with a one-time AES key and so is no problem.
+
+Once we have finished the handshake process we would generally expect the TCP socket layer to protect us from replay attacks. However, as paranoid criminals, we decided to add an extra countermeasure. We simply count the packets that we send and receive and prepend that information to the beginning of each packet. We don't have to worry about losing synchronisation, as TCP \emph{will} take care of this for us. The AES encryption already in place on the packets will ensure that this is an invisible process to any eavesdroppers or attackers.
 
 \end{document}

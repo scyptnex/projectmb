@@ -1,4 +1,7 @@
 .classpath
 .project
 *.class
+*.aux
+*.log
+*.pdf
 
