@@ -86,6 +86,23 @@ public class StealthNetComms {
 			dataIn = new BufferedReader(new InputStreamReader(
 					commsSocket.getInputStream()));
 			
+			for(int outer=0; outer<256; outer++){
+				for(int inner=0; inner<256; inner++){
+					byte[] tmp = new byte[2];
+					tmp[0] = (byte)outer;
+					tmp[1] = (byte)inner;
+					char[] cbuf = new char[2];
+					int num = dataIn.read(cbuf);
+					if(num != 2) System.err.println("bad number " + outer + ", " + inner);
+					int[] vl = new int[2];
+					vl[0] = cbuf[0];
+					vl[1] = cbuf[1];
+					if(tmp[0] != (byte)vl[0] || tmp[1] != (byte)vl[1]){
+						System.err.println("BAD READ " + tmp[0] + " " + tmp[1] + "vs" + (byte)vl[0] + " " + (byte)vl[1]);
+					}
+				}
+			}
+			
 			StealthNetPacket pckt = new StealthNetPacket();
 			boolean done = false;
 			while (!done) {
@@ -142,6 +159,17 @@ public class StealthNetComms {
 			dataOut = new PrintWriter(commsSocket.getOutputStream(), true);
 			dataIn = new BufferedReader(new InputStreamReader(
 					commsSocket.getInputStream()));
+			
+			for(int outer=0; outer<256; outer++){
+				for(int inner=0; inner<256; inner++){
+					byte[] tmp = new byte[2];
+					tmp[0] = (byte)outer;
+					tmp[1] = (byte)inner;
+					String snd = new String(tmp);
+					if(snd.length() != 2) System.out.println(snd + ", " + tmp[0] + " " + tmp[1]);
+					dataOut.println(snd);
+				}
+			}
 			
 			if (secureLayer != null)
 			{
