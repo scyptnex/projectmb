@@ -272,9 +272,8 @@ public class StealthNetComms {
 		//System.out.println("SEND: " + new String(pckt.data) + " = " + pckt.toString());
 		if (secure) {
 			try {
-				System.out.println(SecureLayer.btos(secureLayer.getAESEncrypted(SecureLayer.stob("this is a test"))));
-				System.out.println(SecureLayer.btos(secureLayer.getAESDecrypted(secureLayer.getAESEncrypted(SecureLayer.stob("this is a test")))));
-				dataOut.println(SecureLayer.btos(secureLayer.getAESEncrypted(SecureLayer.stob("this is a test"))));
+			    byte[] data = secureLayer.getAESEncrypted(pckt.toBytes());
+				dataOut.println(hexEncode(data));
 			} catch (SecureLayer.SecurityException e) {
 				System.out.println("Security failed on comms");
 			}
@@ -292,7 +291,7 @@ public class StealthNetComms {
 			System.out.println(str);
 			System.out.println(SecureLayer.stob(str));
 			System.out.println("test");
-			System.out.println(secureLayer.getAESDecrypted(SecureLayer.stob(str)));
+			System.out.println(secureLayer.getAESDecrypted(hexDecode(str)));
 			System.out.println("test");
 		} else {
 			//TODO fix this shit pckt = new StealthNetPacket(str);
