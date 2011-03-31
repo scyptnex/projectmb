@@ -32,5 +32,13 @@
 \subsection{Confidentiality}
 \subsection{Integrity}
 \subsection{Preventing Replay}
+Replay attacks, both after and during the fact are prevented by the RSA handshaking procedure.
+The handshaking protocol is very strict, and failure to complete all steps exactly results in immediate disconnection.
+Since data is randomised by each party and for each connection, and this random data must be correctly decrypted to proceed, it ensures that only people who who hold the information they claim to can proceed.
+This prevents replay because simply replaying one half of the interactions is not enough to pass the handshaking, and thus cannot be used to gain any secure information.
+For example, if Eve attempts to pretend to be Alice and so gain access to Alice's account, Eve must first establish connection to the server.
+However to complete handshaking, the server will make eve Decrypt at least one message and prove that she did by sending the correctly decrypted data back, But since that data is randomly generated (and highly unlikely the same as last time) if Eve simply resen's Alice's last reply the server will notice and cancel the session.
+This is true also of attempting to be the server to a client, and pretending to be one client to another.
+Since no secure information is given out during handshaking, stopping replay attacks here is sufficient.  All data after handshaking is encrypted with a one-time AES key and so is no problem.
 
 \end{document}
