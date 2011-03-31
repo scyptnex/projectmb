@@ -51,7 +51,7 @@ public class StealthNetServer {
 		secureLayer = new SecureLayer();
 		secureLayer.selfInitRSA();
 		
-		System.out.println("RSA Inited " + secureLayer.descMyPublic());
+		System.out.println("RSA Inited " + new String(secureLayer.descMyPublic()));
 		
 		while (true) {
 			new StealthNetServerThread(svrSocket.accept(), secureLayer).start();

@@ -53,23 +53,37 @@ public class SecureLayer {
 		long init = System.currentTimeMillis() - tmp;
 		
 		tmp = System.currentTimeMillis();
-		String message = "This was a triumph.  I'm making a note here: 'HUGE SUCCESS!'.  It's hard to overstate my satisfaction";
+		String message = "This was a triumph.  I'm making a note here: 'HUGE SUCCESS!'.  It's hard to overstate my satisfaction. Aperture science.  We do what we mustm because, we can.  For the good of all of us except the ones who are dead.  But there's no sense crying over every mistake, you just keep on trying `til you run out of cake.  And the science gets done and you make a neat gun for the people who are still alive. *musical interlude*";
 		byte[] mb = stob(message);
-		System.out.println(btos(mb));
+		System.out.println(mb.length + ":" + btos(mb));
 		long control = System.currentTimeMillis() - tmp;
+		
+		System.out.println(sl.descMyPublic().length);
 
 		tmp = System.currentTimeMillis();
 		byte[] eb = sl.sendAES(mb);
 		byte[] db = sl.receiveAES(eb);
-		System.out.println(btos(db));
+		System.out.println(db.length + "(" + eb.length + "):" + btos(db));
 		long aes = System.currentTimeMillis() - tmp;
+		
+		for(int i=3; i<mb.length; i++){
+			byte[] subs = new byte[i];
+			System.arraycopy(mb, 0, subs, 0, i);
+			byte[] teb = sl.sendAES(subs);
+			byte[] tdb = sl.receiveAES(teb);
+			for(int x=0; x<i; x++){
+				if(subs[x] != tdb[x]){
+					System.err.println("Error (" + i + ") " + new String(subs) + " ==VS== " + new String(tdb));
+				}
+			}
+		}
 
 		tmp = System.currentTimeMillis();
 		byte[] pubd = sl.descMyPublic();
 		sl.initRSAYou(pubd);
 		byte[] rsao = sl.sendRSA(mb);
 		byte[] rsai = sl.receiveRSA(rsao);
-		System.out.println(btos(rsai));
+		System.out.println(rsai.length + "(" + rsao.length + "):" + btos(rsai));
 		long rsa = System.currentTimeMillis() - tmp;
 		
 		System.out.println("Init: " + init + "\nControl: " + control + "\nAES: " + aes + "\nRSA: " + rsa);
@@ -297,6 +311,7 @@ public class SecureLayer {
 			throw new SecurityException("RSA Encrypt: Bad Padding");
 		}
 		catch (IllegalBlockSizeException e) {
+			e.printStackTrace();
 			throw new SecurityException("RSA Encrypt: Illegal Block Size");
 		}
 	}
