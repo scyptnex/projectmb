@@ -35,7 +35,7 @@ public class StealthNetChat extends Thread {
         userID = id;
         stealthComms = snComms;
     }
-
+    
     protected void finalise() throws IOException {
         if (stealthComms != null)
             stealthComms.terminateSession();

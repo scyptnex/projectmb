@@ -24,6 +24,19 @@ public class AESTest {
 	}
 
 	public static void main(String[] args) throws Exception {
+		
+		byte[] tmp = new byte[256];
+		for(int i=0; i<256; i++){
+			tmp[i] = (byte)i;
+		}
+		String hex = StealthNetComms.hexEncode(tmp);
+		System.out.println(hex);
+		byte[] rvt = StealthNetComms.hexDecode(hex);
+		for(int i=0; i<256; i++){
+			if(rvt[i] != tmp[i]) System.out.println("FAIL: " + rvt[i] + tmp[i]);
+		}
+		if(rvt.length != tmp.length) System.out.println("LENGTH FAIL");
+		
 		byte[] sharedSecret = "Dead Beef is yum".getBytes();
 		MessageDigest md = MessageDigest.getInstance("SHA-256");
 		byte[] hash = md.digest(sharedSecret);

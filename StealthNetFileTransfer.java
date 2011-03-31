@@ -106,7 +106,7 @@ public class StealthNetFileTransfer extends Thread {
             System.err.println("Error reading from file " + filename);
         }
     }
-
+    
     private synchronized void recvFile() {
         FileOutputStream fid = null;
         byte[] buf;

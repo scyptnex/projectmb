@@ -30,7 +30,7 @@ public class StealthNetServerThread extends Thread {
     private class UserData {
         StealthNetServerThread userThread = null;
     }
-
+    
 	private class SecretData {
 		String name = null;
         String description = null;

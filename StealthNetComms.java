@@ -33,6 +33,7 @@ import java.io.*;
 public class StealthNetComms {
 
 	//CHEESE
+	private static final char[] HEXTABLE = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
 	public static String getDefaultServerName(){
 		return "localhost";
 	}
@@ -84,6 +85,23 @@ public class StealthNetComms {
 			dataOut = new PrintWriter(commsSocket.getOutputStream(), true);
 			dataIn = new BufferedReader(new InputStreamReader(
 					commsSocket.getInputStream()));
+			
+			for(int outer=0; outer<256; outer++){
+				for(int inner=0; inner<256; inner++){
+					byte[] tmp = new byte[2];
+					tmp[0] = (byte)outer;
+					tmp[1] = (byte)inner;
+					char[] cbuf = new char[2];
+					int num = dataIn.read(cbuf);
+					if(num != 2) System.err.println("bad number " + outer + ", " + inner);
+					int[] vl = new int[2];
+					vl[0] = cbuf[0];
+					vl[1] = cbuf[1];
+					if(tmp[0] != (byte)vl[0] || tmp[1] != (byte)vl[1]){
+						System.err.println("BAD READ " + tmp[0] + " " + tmp[1] + "vs" + (byte)vl[0] + " " + (byte)vl[1]);
+					}
+				}
+			}
 			
 			StealthNetPacket pckt = new StealthNetPacket();
 			boolean done = false;
@@ -141,6 +159,17 @@ public class StealthNetComms {
 			dataOut = new PrintWriter(commsSocket.getOutputStream(), true);
 			dataIn = new BufferedReader(new InputStreamReader(
 					commsSocket.getInputStream()));
+			
+			for(int outer=0; outer<256; outer++){
+				for(int inner=0; inner<256; inner++){
+					byte[] tmp = new byte[2];
+					tmp[0] = (byte)outer;
+					tmp[1] = (byte)inner;
+					String snd = new String(tmp);
+					if(snd.length() != 2) System.out.println(snd + ", " + tmp[0] + " " + tmp[1]);
+					dataOut.println(snd);
+				}
+			}
 			
 			if (secureLayer != null)
 			{
@@ -266,10 +295,36 @@ public class StealthNetComms {
 			System.out.println(secureLayer.getAESDecrypted(SecureLayer.stob(str)));
 			System.out.println("test");
 		} else {
-			pckt = new StealthNetPacket(str);
+			//TODO fix this shit pckt = new StealthNetPacket(str);
+			
 		}
 		//System.out.println("RECV: " + new String(pckt.data) + " = " + pckt.toString());
 		return pckt;
+	}
+	
+	public static String hexEncode(byte[] pckt){
+		StringBuffer buf = new StringBuffer();
+		for(int i=0; i<pckt.length; i++){
+			int highByte = (pckt[i] >= 0) ? pckt[i] : 256 + pckt[i];
+			int lowByte = highByte & 15;
+			highByte /= 16;
+			buf.append(HEXTABLE[highByte]);
+			buf.append(HEXTABLE[lowByte]);
+		}
+		return buf.toString();
+	}
+	
+	public static byte[] hexDecode(String hexenc){
+		if(hexenc.length() % 2 != 0){
+			System.err.println("WTF! SOme idiot doesnt know how to encode hex strings");
+			return null;
+		}
+		byte[] ret = new byte[hexenc.length()/2];
+		for(int i=0; i<ret.length; i++){
+			String abyte = hexenc.substring(2*i, 2*(i+1));//up to but not including arg2
+			ret[i] = (byte)Integer.parseInt(abyte, 16);
+		}
+		return ret;
 	}
 
 	public boolean recvReady() throws IOException {
