@@ -43,6 +43,7 @@ public class StealthNetComms {
 	private PrintWriter dataOut;            // output data stream
 	private BufferedReader dataIn;          // input data stream
 	private SecureLayer secureLayer;
+	private int counter;
 	
 	public static class CommsException extends IOException{
 		public CommsException(String message){
@@ -112,6 +113,8 @@ public class StealthNetComms {
 				throw new CommsException("IVs do not match!");
 			}
 			
+			counter = 0;
+			
 		} catch (Exception e) {
 			System.err.println("Connection terminated.");
 			return false;
@@ -158,6 +161,8 @@ public class StealthNetComms {
 			
 			/* Send decrypted IV */
 			sendData(secureLayer.getRSAEncrypted(iv));
+			
+			counter = 0;
 					
 		} catch (Exception e) {
 			System.err.println("Connection terminated.");
@@ -205,7 +210,11 @@ public class StealthNetComms {
 	public boolean sendPacket(StealthNetPacket pckt) {
 		if (dataOut == null) return false;
 		try {
-		    sendData(secureLayer.sendAES(pckt.toBytes()));
+			byte[] clear = SecureLayer.byteJoin(itob(counter), pckt.toBytes());
+		    sendData(secureLayer.sendAES(clear));
+		    
+		    counter++;
+		    if (counter == Integer.MAX_VALUE) counter = 0;
 		} catch (SecureLayer.SecurityException e) {
 			System.out.println("Security failed on comms");
 		}
@@ -213,7 +222,20 @@ public class StealthNetComms {
 	}
 
 	public StealthNetPacket recvPacket() throws IOException {
-		return new StealthNetPacket(secureLayer.receiveAES(recvData()));
+		byte[] data = secureLayer.receiveAES(recvData());
+		byte[] ctr = new byte[4];
+		byte[] rest = new byte[data.length - 4];
+		SecureLayer.byteSplit(data, ctr, rest);
+		
+		if (btoi(ctr) != counter)
+		{
+			throw new IOException("Replay attack detected");
+		}
+		
+		counter++;
+		if (counter == Integer.MAX_VALUE) counter = 0;
+		
+		return new StealthNetPacket(rest);
 	}
 	
 	private void sendData(byte[] data)
@@ -249,6 +271,23 @@ public class StealthNetComms {
 			ret[i] = (byte)Integer.parseInt(abyte, 16);
 		}
 		return ret;
+	}
+	
+	public static final byte[] itob(int value) {
+		return new byte[] {
+				(byte)(value >>> 24),
+				(byte)(value >>> 16),
+				(byte)(value >>> 8),
+				(byte)value};
+	}
+	
+	public static final int btoi(byte[] b) {
+		int value = 0;
+        for (int i = 0; i < 4; i++) {
+            int shift = (4 - 1 - i) * 8;
+            value += (b[i] & 0x000000FF) << shift;
+        }
+        return value;
 	}
 
 	public boolean recvReady() throws IOException {
