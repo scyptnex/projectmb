@@ -5,3 +5,5 @@ Last night I got most of the authentication stuff done but I ran into some probl
 Secondly, a similar issue with AES. It's giving me a block size exception this time. I can encrypt and decrypt the message on the server side, but when I try to make a packet out of it and send it to the server, it doesn't decrypt. I've just had a horrible thought that I forget to deal with the command byte, so I'll check if that's the problem later. It was 1am when I was doing this so it's entirely possible I did something stupid like that.
 
 Anyway, I still haven't looked at client/client stuff but it should be the same anyway. I'll have another crack at it tonight hopefully.
+
+--read by nic 10-3-31-12:03
