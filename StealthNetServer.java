@@ -54,8 +54,11 @@ public class StealthNetServer {
 		System.out.println("RSA Inited " + new String(secureLayer.descMyPublic()));
 		
 		while (true) {
-			new StealthNetServerThread(svrSocket.accept(), secureLayer).start();
-			System.out.println("Server accepted connection...");
+			try {
+				new StealthNetServerThread(svrSocket.accept(), secureLayer).start();
+			} catch (IOException e) {
+				System.out.println("Server denied a connection.");
+			}
 		}
 	}
 }

@@ -1,0 +1,88 @@
+\documentstyle[11pt]{article}
+
+\author{
+		Nic Hollingum\\
+		308193415\\
+		nhol8058@uni.sydney.edu.au
+	\and
+		Alex Legg\\
+		alexremembertoaddyournumber\\
+		aleg1081@uni.sydney.edu.au
+}
+\title{StealthNet - Security for the Freedom Fighters}
+
+\addtolength{\oddsidemargin}{-.875in}
+\addtolength{\evensidemargin}{-.875in}
+\addtolength{\textwidth}{1.75in}
+\addtolength{\topmargin}{-.875in}
+\addtolength{\textheight}{1.75in}
+
+\begin{document}
+\maketitle
+
+\section {Protocol Description}
+\subsection{Communication}
+The communication layer is quite simple.  The server facilitates connection to clients and between them, using command/data messages.
+Clients are kept up-to-date with currently logged in peers and available secrets.
+Clients may chat with peers, send them files, or download ``secret'' files from a peer if they are online, however for the time being this functionality is limited.
+The server facilitates client-client communication by sending the nature of the request and the addresses of the clients tpo each other, at which point they communicate with each other without server intervention.
+
+\subsection{Security}
+In order to ensure security of the system we must prevent secret and possibly damaging information from being read over the wire.
+Before modification all informationw as encoded into hex and sent in the clear, however a new feature of StealthNet, the ``SecureLayer'', is used to keep communications secret.
+The SecureLayer controls 2 core functions:
+\begin{itemize}
+	\item 2048 bit RSA is used for handshaking.  This public-key method is used to establish initial shared secrets, however it is too slow and limiting to be used generally.
+	\item 128 bit AES with CBC and Secure padding is used for general communication.  After handshaking, the shared secret is established: an IV, the AES key, and a 256 bit MAC, which are used for all future communication
+	\item 265 bit MACs are used to ensure integrity.  These are simplky appended to the message before encryption.
+\end{itemize}
+The AES and MAC usage is fairly straightforward.  Data is encrypted and decrypted symmetrically at both ends, and the data packet is checked against the MAC to prevent integrity attacks.
+
+\subsection{Handshaking}
+This portion of opening communication is significantly more important from a security perspective.
+The protocol is a slight modification of the SSL Handshaking procedure.
+For this description nodes A and B are attempting to open a secure channel, B initiates the communication by opening a connection to the correct host:port.
+\begin{enumerate}
+	\item A sends her RSA Public Key in the clear.
+	\item B Receives A's RSA Public Key, B Sends his an RSA Public key in the clear.
+	\item A Receives B's public key. A randomly generates a MAC Password and sends it, encrypted by B's public key.
+	\item B decrypt's the MAC.  B randomly generates an AES Key and IV (128 bits each) and sends all 3 items to A, encrypted with A's public key.
+	\item A decrypt's the AES Key, IV and Mac.  A ensures B has correctly decrypted the MAC, and reports a problem otherwise.  A sends the IV Alone, encrypted by B's public key.
+	\item B decrypts the IV.  B Ensures A has correctly decrypted the IV, and reports a problem otherwise.
+	\item AES communication begins, using the shared secret.
+\end{enumerate}
+Note the rationale behind this protocol.
+Each party must make 3 key moves.
+First they must initiate, by sending public keys in the clear
+Next they must test each other's ability to decrypt data encrypted with their public keys.
+Last they must prove that they passed the test set them by the other.
+This 3-stage protocol provides several important security properties.
+
+\section {Guarantees}
+\subsection{Authentication}
+The handshaking protocol excludes non-authentic clients/servers from communicating.
+Each party must be able to decrypt a random piece of data sent to them by the other, this is a computatioaly intractable task for anyone who does not hold the private pair of the advertised public key.
+Since AES communication does not commence until both parties have not merely done this, but proven to the other that they have done this, it is guaranteed that communicating parties must hold the private pair of their advertised public keys, and so must be authentic.
+With minor modifications this could be extended to trusted authenticity, which would prevent man-in-the-middle attacks.
+However since more serious machinery would be needed to provide at least one minimally-trusted component of the network this has not been implemented.
+\subsection{Confidentiality}
+Confidentiality of communication is ensured by 128 bit AES encryption usinf Cipher Block Chaining.
+The keys to this cipher are themselves kept confidential by 2048 bit RSA with an Electronic-Code-Book.
+ECB is used during RSA because no RSA communication is made that is larger than 1 block, indeed the total size of the largest data packet is only 512 bits bytes, well below the 1960 block size.
+These encryption mechanisms provide a high degree of rnadom-appearance to all communications both at the block level and at the message level.
+\subsection{Integrity}
+Message integrity is ensured by appending a 256 bit MAC to every AES-Encrypted message (before encryption).
+Since changing a single bit in the encrypted stream will result in a 50/50 flip of all bits in the decrypted version, it is near impossible to modify a message without this being detected.
+If the message does not match its MAC, this is flagged to the user and the message is dropped
+\subsection{Preventing Replay}
+Replay attacks, both after and during the fact are prevented by the RSA handshaking procedure.
+For this reason it is important that all keys are one time use, they are randomly generated as needed for this purpose.
+The handshaking protocol is very strict, and failure to complete all steps exactly results in immediate disconnection.
+Since data is randomised by each party and for each connection, and this random data must be correctly decrypted to proceed, it ensures that only people who who hold the information they claim to can proceed.
+This prevents replay because simply replaying one half of the interactions is not enough to pass the handshaking, and thus cannot be used to gain any secure information.
+For example, if Eve attempts to pretend to be Alice and so gain access to Alice's account, Eve must first establish connection to the server.
+However to complete handshaking, the server will make eve Decrypt at least one message and prove that she did by sending the correctly decrypted data back, But since that data is randomly generated (and highly unlikely the same as last time) if Eve simply resen's Alice's last reply the server will notice and cancel the session.
+This is true also of attempting to be the server to a client, and pretending to be one client to another.
+Since no secure information is given out during handshaking, stopping replay attacks here is sufficient.  All data after handshaking is encrypted with a one-time AES key and so is no problem.
+
+\end{document}

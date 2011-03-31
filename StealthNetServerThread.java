@@ -47,12 +47,15 @@ public class StealthNetServerThread extends Thread {
     private StealthNetComms stealthComms = null;
     private SecureLayer secureLayer;
 
-    public StealthNetServerThread(Socket socket, SecureLayer sl) {
+    public StealthNetServerThread(Socket socket, SecureLayer sl)  throws IOException {
         super("StealthNetServerThread");
+        System.out.println("new thread");
         secureLayer = sl;
-        stealthComms = new StealthNetComms(sl);
-        stealthComms.acceptSession(socket);
-        System.out.println("Blah");
+        stealthComms = new StealthNetComms(new SecureLayer(sl));
+        if (!stealthComms.acceptSession(socket))
+        {
+        	throw new IOException("Cannot initiate secure comms.");
+        }
     }
 
     protected void finalise() throws IOException {
