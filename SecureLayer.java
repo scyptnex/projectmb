@@ -111,6 +111,33 @@ public class SecureLayer {
 		aesMacRaw = null;
 	}
 	
+	public SecureLayer(SecureLayer s){
+		rand = new SecureRandom(new SecureRandom().generateSeed(32));
+		
+		yourPublic = null;
+		myPublic = null;
+		myPrivate = null;
+		outCipher = null;
+		inCipher = null;
+		
+		rawKey = null;
+		initVec = null;
+		aesSpec = null;
+		enc = null;
+		dec = null;
+		
+		rsaMac = null;
+		aesMac = null;
+		rsaMacRaw = null;
+		aesMacRaw = null;
+		
+		try {
+			initRSAMe(s.descMyPublic(), s.descMyPrivate());
+		} catch (Exception e) {
+			//Uhhh yeah
+		}
+	}
+	
 	/**
 	 * Auto methods
 	 * These are the actual ones the user will call alot
@@ -348,19 +375,15 @@ public class SecureLayer {
 	//Note, this one does NOT check the message contents against its digest
 	public byte[] getAESDecrypted(byte[] message) throws SecurityException{
 		if(dec == null) {
-			System.out.println("Not inited");
 			throw new SecurityException("Unable to decrypt before AES key has been initialized");
 		}
 		try{
-			System.out.println("decrypt");
 			return dec.doFinal(message);
 		}
 		catch(BadPaddingException exc){
-			System.out.println("Padding");
 			throw new SecurityException("AES Decrypt: Bad Padding");
 		}
 		catch(IllegalBlockSizeException exc){
-			System.out.println("Block size");
 			throw new SecurityException("AES Decrypt: Illegal Block Size");
 		}
 	}
