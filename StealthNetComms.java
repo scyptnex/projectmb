@@ -38,7 +38,7 @@ public class StealthNetComms {
 	public static int getDefaultServerPort(){
 		return 5616;
 	}
-
+	
 	private Socket commsSocket;             // communications socket
 	private PrintWriter dataOut;            // output data stream
 	private BufferedReader dataIn;          // input data stream
