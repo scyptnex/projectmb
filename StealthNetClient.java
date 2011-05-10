@@ -289,7 +289,10 @@ public class StealthNetClient {
 		}
 		
 		try {
-			userID = JOptionPane.showInputDialog("Login:", userID);
+			SecurePrompt secp = new SecurePrompt(clientFrame);
+			userID = secp.getLogin();
+			char[] pass = secp.getPassword();
+			System.out.println("lname: " + userID + "\npass: " + pass);
 			if (userID == null) return;
 			stealthComms = new StealthNetComms();
 			if (stealthComms.initiateSession(new Socket(serv, port)))
