@@ -412,7 +412,7 @@ public class StealthNetClient {
 			// wait for user to connect, then start file transfer
 			try {
 				ftpSocket.setSoTimeout(2000);  // 2 second timeout
-				StealthNetComms snComms = new StealthNetComms(); //Need new stuff here
+				StealthNetComms snComms = new StealthNetComms(new SecureLayer(myID.getPub(), myID.getPri())); //Need new stuff here
 				snComms.acceptSession(ftpSocket.accept());
 				new StealthNetFileTransfer(snComms,
 						fileSave.getDirectory() + fileSave.getFile(), false).start();
@@ -648,7 +648,7 @@ public class StealthNetClient {
 					iAddr = iAddr.substring(0, iAddr.lastIndexOf(":"));
 					fName = fName.substring(0, fName.lastIndexOf("@"));
 
-					snComms = new StealthNetComms();
+					snComms = new StealthNetComms(new SecureLayer(myID.getPub(), myID.getPri()));
 					snComms.initiateSession(new Socket(iAddr, iPort.intValue()));
 
 					msgTextBox.append("[INFO] Sending out a secret.\n");

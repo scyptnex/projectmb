@@ -37,6 +37,8 @@ public class StealthNetPacket {
 	public static final byte CMD_PAY = 0x0F;
 	public static final byte CMD_PAYPART = 0x10;
 	public static final byte CMD_HASHSTALK = 0x11;
+	public static final byte CMD_REQUESTPUB = 0x12;
+	public static final byte CMD_PROVIDEPUB = 0x13;
 
 
 	private static final char[] HEXTABLE =

@@ -43,7 +43,7 @@ public class SecureLayer {
 	private byte[] rsaMacRaw;
 	private byte[] aesMacRaw;
 	
-	public static void main(String[] args) throws Exception{
+	/**public static void main(String[] args) throws Exception{
 		long tmp = System.currentTimeMillis();
 		SecureLayer sl = new SecureLayer();
 		sl.selfInitAES();
@@ -109,7 +109,7 @@ public class SecureLayer {
 		aesMac = null;
 		rsaMacRaw = null;
 		aesMacRaw = null;
-	}
+	}**/
 	
 	public SecureLayer(byte[] myPub, byte[] myPri){
 		rand = new SecureRandom(new SecureRandom().generateSeed(32));
@@ -217,7 +217,7 @@ public class SecureLayer {
 	 * These rely on a good and random secure random, its as random as it'll ever be after initialisation
 	 */
 	
-	public void selfInitRSA() throws SecurityException{
+	/**public void selfInitRSA() throws SecurityException{
 		try{
 			KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
 			keyPairGenerator.initialize(RSA_LENGTH, rand);
@@ -229,7 +229,7 @@ public class SecureLayer {
 		catch (NoSuchAlgorithmException e) {
 			throw new SecurityException("RSA Init: No Such Algorithm");
 		}
-	}
+	}**/
 	
 	public void selfInitAES() throws SecurityException{
 		try{
