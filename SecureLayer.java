@@ -144,6 +144,24 @@ public class SecureLayer {
 	 * These methods string together secure and non-secure functions to perform some useful task
 	 */
 	
+	//used to check the person i'm talking to is the person they claim to be
+	public boolean checkAuthenticity(byte[] expectedYourPublic){
+		try{
+			byte[] keyDesc = descYourPublic();
+			if(expectedYourPublic.length != keyDesc.length){
+				return false;
+			}
+			for(int i=0; i<expectedYourPublic.length; i++){
+				if(expectedYourPublic[i] != keyDesc[i] ) return false;
+			}
+			return true;
+		}
+		catch(Exception e){
+			e.printStackTrace();
+			return false;
+		}
+	}
+	
 	//This method DOES CHECK THE PASSWORDED MAC
 	//but, not all rsa messages are sent with a passworded mac, so use this one with caution
 	public byte[] sendRSA(byte[] message) throws SecurityException{
