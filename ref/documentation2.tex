@@ -69,6 +69,21 @@ The files are encrypted with the password of the StealthNet user and a MAC, this
 
 \section{Payment Protocol}
 
+Our payment protocol is as follows.
+First, A sends a request to purchase a secret
+The server checks if A's account has enough to pay.
+If not, a payment request is sent to A for the remainder.
+If A has an existing hash stalk this is sent to the server.
+If A has still not paid enough a new hash stalk is created and coins are sent to the Server.
 
+Hash stalks are way of providing authentication for payments.
+First we generate some random value, $B$.
+Then we hash this value for the number of coins, $n$, we wish to store to give us a top value $T = h^n(B)$.
+The bank then verifies that we can withdraw those coins and sends us a signed tuple containing the user's ID, $n$ and $T$.
+This is then sent to the server (who decrypts it using the bank's public key) to authenticate the user.
+To spend money the user sends the server an amount it wishes to spend $a$ and a hash $H = h^{n-a}(B)$.
+The server can then verify that it is valid to send this coin by checking $h^a(H) = T$.
+The server then takes $H$ as its new $T$. This ensures that the same coins cannot be spent twice.
+And the client sets $n = n - a$. 
 
 \end{document}
