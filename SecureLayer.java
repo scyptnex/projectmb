@@ -154,6 +154,7 @@ public class SecureLayer {
 			for(int i=0; i<expectedYourPublic.length; i++){
 				if(expectedYourPublic[i] != keyDesc[i] ) return false;
 			}
+			System.out.println("Authenticity check passed");
 			return true;
 		}
 		catch(Exception e){

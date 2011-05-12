@@ -294,10 +294,18 @@ public class StealthNetClient {
 			char[] pass = secp.getPassword();
 			UserID myID = UserID.login(username, pass);
 			if (myID == null) return;
-			stealthComms = new StealthNetComms();
+			SecureLayer stealthLayer = new SecureLayer(myID.getPub(), myID.getPri());
+			stealthComms = new StealthNetComms(stealthLayer);
 			if (stealthComms.initiateSession(new Socket(serv, port)))
 			{
 				stealthComms.sendPacket(StealthNetPacket.CMD_LOGIN, myID.uname);
+				byte[] servPublic = UserID.getPublic(StealthNetServer.SERVER_ID);
+				if(servPublic != null){
+					if(!stealthLayer.checkAuthenticity(servPublic)){
+						System.err.println("SOMEBODY IS FUXXING WITH TEH SERVER\n\nABANDON SHIP!!!");
+						System.exit(0);
+					}
+				}
 				stealthTimer.start();
 				msgTextBox.append("Connected to stealthnet.\n");
 				clientFrame.setTitle("stealthnet [" + myID.uname + "]");

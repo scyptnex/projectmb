@@ -142,6 +142,7 @@ public class UserID {
 			if(!serverPublic.exists()) serverPublic.createNewFile();
 			PrintWriter pr = new PrintWriter(new FileWriter(serverPublic));
 			pr.println(SecureLayer.btos(pubDesc));
+			pr.close();
 			System.out.println("public key saved for " + un);
 		}
 		catch(IOException e){
@@ -151,11 +152,13 @@ public class UserID {
 	
 	public static byte[] getPublic(String un){
 		try{
+			System.out.println("Getting public " + un);
 			File serverPublic = new File(un + ".pub");
 			if(!serverPublic.exists()) return null;
 			BufferedReader br = new BufferedReader(new FileReader(serverPublic));
 			String ln = br.readLine();
-			System.out.println("public key loaded for " + un + ", it's " + ln);
+			//System.out.println("public key loaded for " + un + ", it's " + ln);
+			br.close();
 			return SecureLayer.stob(ln);
 		}
 		catch(IOException e){
