@@ -420,7 +420,7 @@ public class StealthNetClient {
 		myid = (String)buddyTable.getValueAt(row, 0);
 		mystatus = (String)buddyTable.getValueAt(row,1);
 
-		if (myid.equals(userID)) {
+		if (myid.equals(myID.uname)) {
 			msgTextBox.append("[*ERR*] Can't send to self.\n");
 			return false;
 		}
@@ -470,7 +470,7 @@ public class StealthNetClient {
 			chatSocket.setSoTimeout(2000);  // 2 second timeout
 			StealthNetComms snComms = new StealthNetComms(new SecureLayer(secureLayer));
 			snComms.acceptSession(chatSocket.accept());
-			new StealthNetChat(userID, snComms).start();
+			new StealthNetChat(myID.uname, snComms).start();
 		} catch (Exception e) {
 			msgTextBox.append("[*ERR*] Chat failed.\n");
 		}
@@ -561,7 +561,7 @@ public class StealthNetClient {
 					iAddr = iAddr.substring(0, iAddr.lastIndexOf(":"));
 					snComms = new StealthNetComms(new SecureLayer(secureLayer));
 					snComms.initiateSession(new Socket(iAddr, iPort.intValue()));
-					new StealthNetChat(userID, snComms).start();
+					new StealthNetChat(myID.uname, snComms).start();
 					break;
 
 				case StealthNetPacket.CMD_FTP :
