@@ -111,7 +111,7 @@ public class SecureLayer {
 		aesMacRaw = null;
 	}
 	
-	public SecureLayer(SecureLayer s){
+	public SecureLayer(byte[] myPub, byte[] myPri){
 		rand = new SecureRandom(new SecureRandom().generateSeed(32));
 		
 		yourPublic = null;
@@ -132,7 +132,7 @@ public class SecureLayer {
 		aesMacRaw = null;
 		
 		try {
-			initRSAMe(s.descMyPublic(), s.descMyPrivate());
+			initRSAMe(myPub, myPri);
 		} catch (Exception e) {
 			//Uhhh yeah
 		}

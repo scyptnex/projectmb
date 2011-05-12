@@ -46,13 +46,14 @@ public class StealthNetServerThread extends Thread {
     
     private String userID = null;
     private StealthNetComms stealthComms = null;
-    private SecureLayer secureLayer;
+    private byte[] pubKey, priKey;
 
-    public StealthNetServerThread(Socket socket, SecureLayer sl)  throws IOException {
+    public StealthNetServerThread(Socket socket, UserID servID)  throws IOException {
         super("StealthNetServerThread");
         System.out.println("new thread");
-        secureLayer = sl;
-        stealthComms = new StealthNetComms(new SecureLayer(sl));
+        pubKey = servID.getPub();
+        priKey = servID.getPri();
+        stealthComms = new StealthNetComms(new SecureLayer(pubKey, priKey));
         if (!stealthComms.acceptSession(socket))
         {
         	throw new IOException("Cannot initiate secure comms.");

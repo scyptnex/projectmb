@@ -43,7 +43,7 @@ public class StealthNetClient {
 	private UserID userID = null;
 	private JTable buddyTable = null, secretTable = null;
 	private DefaultTableModel buddyListData = null, secretListData = null;
-	private SecureLayer secureLayer;
+	//private SecureLayer secureLayer;
 	JTextField creditsBox;
 
 	private int credits = 0;		// CHANGEME: Give them 100 credits for demonstration purposes
@@ -56,10 +56,10 @@ public class StealthNetClient {
 	static private Hashtable secretDescriptions = new Hashtable();
 
 	public StealthNetClient() throws SecureLayer.SecurityException {
-		secureLayer = new SecureLayer();
-		secureLayer.selfInitRSA();
+		//secureLayer = new SecureLayer();
+		//secureLayer.selfInitRSA();
 		
-		System.out.println(secureLayer.descMyPublic());
+		//System.out.println(secureLayer.descMyPublic());
 		
 		stealthTimer = new javax.swing.Timer(100, new ActionListener() {
 			public void actionPerformed(ActionEvent e) { processPackets(); }
@@ -293,7 +293,6 @@ public class StealthNetClient {
 			String username = secp.getLogin();
 			char[] pass = secp.getPassword();
 			UserID myID = UserID.login(username, pass);
-			System.out.println("lname: " + myID.uname + "\npass: " + myID.pass());
 			if (myID == null) return;
 			stealthComms = new StealthNetComms();
 			if (stealthComms.initiateSession(new Socket(serv, port)))
@@ -420,7 +419,7 @@ public class StealthNetClient {
 		myid = (String)buddyTable.getValueAt(row, 0);
 		mystatus = (String)buddyTable.getValueAt(row,1);
 
-		if (myid.equals(userID)) {
+		if (myid.equals(myID.uname)) {
 			msgTextBox.append("[*ERR*] Can't send to self.\n");
 			return false;
 		}
@@ -468,9 +467,9 @@ public class StealthNetClient {
 		// wait for user to connect and open chat window
 		try {
 			chatSocket.setSoTimeout(2000);  // 2 second timeout
-			StealthNetComms snComms = new StealthNetComms(new SecureLayer(secureLayer));
+			StealthNetComms snComms = new StealthNetComms(new SecureLayer(myID.getPub(), myID.getPri()));
 			snComms.acceptSession(chatSocket.accept());
-			new StealthNetChat(userID, snComms).start();
+			new StealthNetChat(myID.uname, snComms).start();
 		} catch (Exception e) {
 			msgTextBox.append("[*ERR*] Chat failed.\n");
 		}
@@ -517,7 +516,7 @@ public class StealthNetClient {
 		// wait for user to connect, then start file transfer
 		try {
 			ftpSocket.setSoTimeout(2000);  // 2 second timeout
-			StealthNetComms snComms = new StealthNetComms(new SecureLayer(secureLayer));
+			StealthNetComms snComms = new StealthNetComms(new SecureLayer(myID.getPub(), myID.getPri()));
 			snComms.acceptSession(ftpSocket.accept());
 			new StealthNetFileTransfer(snComms,
 					fileOpen.getDirectory() + fileOpen.getFile(), true).start();
@@ -559,9 +558,9 @@ public class StealthNetClient {
 					iAddr = iAddr.substring(iAddr.lastIndexOf("@") + 1);
 					iPort = new Integer(iAddr.substring(iAddr.lastIndexOf(":") + 1));
 					iAddr = iAddr.substring(0, iAddr.lastIndexOf(":"));
-					snComms = new StealthNetComms(new SecureLayer(secureLayer));
+					snComms = new StealthNetComms(new SecureLayer(myID.getPub(), myID.getPri()));
 					snComms.initiateSession(new Socket(iAddr, iPort.intValue()));
-					new StealthNetChat(userID, snComms).start();
+					new StealthNetChat(myID.uname, snComms).start();
 					break;
 
 				case StealthNetPacket.CMD_FTP :
@@ -572,7 +571,7 @@ public class StealthNetClient {
 					iPort = new Integer(iAddr.substring(iAddr.lastIndexOf(":") + 1));
 					iAddr = iAddr.substring(0, iAddr.lastIndexOf(":"));
 
-					snComms = new StealthNetComms(new SecureLayer(secureLayer));
+					snComms = new StealthNetComms(new SecureLayer(myID.getPub(), myID.getPri()));
 					snComms.initiateSession(new Socket(iAddr, iPort.intValue()));
 
 					FileDialog fileSave = new FileDialog(clientFrame, "Save As...", FileDialog.SAVE);

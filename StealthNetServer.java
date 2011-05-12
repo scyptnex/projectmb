@@ -28,7 +28,7 @@ import java.net.*;
 public class StealthNetServer {	
 	public static void main(String[] args) throws IOException {
 		ServerSocket svrSocket = null;
-		SecureLayer secureLayer;
+		UserID serverID = null;
 		
 		//CHEESE
 		int sport = StealthNetComms.getDefaultServerPort();
@@ -47,15 +47,18 @@ public class StealthNetServer {
 
 		System.out.println("Server [port:" + svrSocket.getLocalPort() + "] online...");
 		
-		System.out.println("Initialising RSA");
-		secureLayer = new SecureLayer();
-		secureLayer.selfInitRSA();
+		while(serverID == null){
+			System.out.println("Logging in server");
+			serverID = UserID.login("server", "serverPASSWORDisCOMPLICATED19343298126192827209385749376138726348".toCharArray());
+		}
+		//secureLayer = new SecureLayer();
+		//secureLayer.selfInitRSA();
 		
-		System.out.println("RSA Inited " + new String(secureLayer.descMyPublic()));
+		//System.out.println("RSA Inited " + new String(secureLayer.descMyPublic()));
 		
 		while (true) {
 			try {
-				new StealthNetServerThread(svrSocket.accept(), secureLayer).start();
+				new StealthNetServerThread(svrSocket.accept(), serverID).start();
 			} catch (IOException e) {
 				System.out.println("Server denied a connection.");
 			}
