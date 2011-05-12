@@ -359,10 +359,19 @@ public class StealthNetServerThread extends Thread {
 						stealthComms.sendPacket(StealthNetPacket.CMD_PAY, StealthNetComms.itob(cost));
 
 						p = stealthComms.recvPacket();
-						if (p.command == StealthNetPacket.CMD_HASHSTALK)
+						if (p.command == StealthNetPacket.CMD_BANK)
 						{
+							byte[] unameb = new byte[SecureLayer.stob(userID).length];
+							byte[] top = new byte[HashStalk.HASH_NUM_BYTES];
+							//Acting as the bank we sign the tuple
+							//If this was real you'd check it first
+							stealthComms.sendPacket(StealthNetPacket.CMD_BANK, p.data);
+							
+							p = stealthComms.recvPacket();
+							SecureLayer.byteSplit(p.data, unameb, top);
+							
 							//Set up a new hash stalk
-							userInfo.hashTop = p.data;
+							userInfo.hashTop = top;
 							System.out.println("HASHSTALK");
 							stealthComms.sendPacket(StealthNetPacket.CMD_HASHSTALK);
 							
@@ -392,10 +401,19 @@ public class StealthNetServerThread extends Thread {
 							stealthComms.sendPacket(StealthNetPacket.CMD_PAYPART);
 							
 							p = stealthComms.recvPacket();
-							if (p.command == StealthNetPacket.CMD_HASHSTALK)
+							if (p.command == StealthNetPacket.CMD_BANK)
 							{
+								byte[] unameb = new byte[SecureLayer.stob(userID).length];
+								byte[] top = new byte[HashStalk.HASH_NUM_BYTES];
+								//Acting as the bank we sign the tuple
+								//If this was real you'd check it first
+								stealthComms.sendPacket(StealthNetPacket.CMD_BANK, p.data);
+								
+								p = stealthComms.recvPacket();
+								SecureLayer.byteSplit(p.data, unameb, top);
+								
 								//Set up a new hash stalk
-								userInfo.hashTop = p.data;
+								userInfo.hashTop = top;
 								stealthComms.sendPacket(StealthNetPacket.CMD_HASHSTALK);
 								p = stealthComms.recvPacket();
 							} else {

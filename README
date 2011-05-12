@@ -2,6 +2,8 @@ Nic
 
 Ok I'll do what I can. I'm quite awake for some reason. And I just realised I read the assignment wrong, so ignore my last.
 
+3.30am update: I can't sign the (name, top, length) tuples using RSA, I'm assuming to do with that length problem from before. Technically anything we send is AES encrypted anyway, so it's basically signed. I don't know if that's good enough though. This whole bank thing is stupid anyway. Text me when you get to uni tomorrow and I'll come join you.
+
 Alex
 
 I'm off to bed, will look at preventing replay when i get to uni early tomorrow probably

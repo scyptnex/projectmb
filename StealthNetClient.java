@@ -685,8 +685,17 @@ public class StealthNetClient {
 						//wallet = new HashStalk(amount + 10);
 						
 						//Verify with bank here
+						byte[] unameb = SecureLayer.stob(myID.uname);
+						byte[] walletsize = StealthNetComms.itob(wallet.getSize());
+						byte[] tmp = SecureLayer.byteJoin(unameb, wallet.getTop());
+						stealthComms.sendPacket(StealthNetPacket.CMD_BANK, SecureLayer.byteJoin(tmp, walletsize));
 						
-						stealthComms.sendPacket(StealthNetPacket.CMD_HASHSTALK, wallet.getTop());
+						//Get signed reply
+						p = stealthComms.recvPacket();
+						if (p.command != StealthNetPacket.CMD_BANK) break;
+						
+						//Send it back to server
+						stealthComms.sendPacket(StealthNetPacket.CMD_HASHSTALK, p.data);
 						p = stealthComms.recvPacket();
 						
 						if (p.command != StealthNetPacket.CMD_HASHSTALK) break;
@@ -707,8 +716,16 @@ public class StealthNetClient {
 						wallet = new HashStalk(amount + 10);
 						
 						//Verify with bank here
+						byte[] unameb = SecureLayer.stob(myID.uname);
+						byte[] tmp = SecureLayer.byteJoin(unameb, wallet.getTop());
+						walletsize = StealthNetComms.itob(wallet.getSize());
+						stealthComms.sendPacket(StealthNetPacket.CMD_BANK, SecureLayer.byteJoin(tmp, walletsize));
 						
-						stealthComms.sendPacket(StealthNetPacket.CMD_HASHSTALK, wallet.getTop());
+						//Get signed reply
+						p = stealthComms.recvPacket();
+						if (p.command != StealthNetPacket.CMD_BANK) break;
+						
+						stealthComms.sendPacket(StealthNetPacket.CMD_HASHSTALK, p.data);
 						p = stealthComms.recvPacket();
 						
 						if (p.command != StealthNetPacket.CMD_HASHSTALK) break;

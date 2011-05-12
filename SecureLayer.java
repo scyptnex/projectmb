@@ -28,6 +28,7 @@ public class SecureLayer {
 	private RSAPublicKey myPublic;
 	private RSAPrivateKey myPrivate;
 	private Cipher outCipher;
+	private Cipher outDeCipher;
 	private Cipher inCipher;
 	
 	//aes bits
@@ -118,6 +119,7 @@ public class SecureLayer {
 		myPublic = null;
 		myPrivate = null;
 		outCipher = null;
+		outDeCipher = null;
 		inCipher = null;
 		
 		rawKey = null;
@@ -261,6 +263,8 @@ public class SecureLayer {
 			yourPublic = descToRSAPublic(keyDesc);
 			outCipher = Cipher.getInstance(RSA_STANDARD);
 			outCipher.init(Cipher.ENCRYPT_MODE, yourPublic);
+			outDeCipher = Cipher.getInstance(RSA_STANDARD);
+			outDeCipher.init(Cipher.DECRYPT_MODE, yourPublic);
 		}
 		catch (InvalidKeyException e) {
 			throw new SecurityException("RSA me Init: Invalid Key");
@@ -352,6 +356,20 @@ public class SecureLayer {
 		if(outCipher == null) throw new SecurityException("Unable to encrypt before Receiver RSA key has been initialized");
 		try {
 			return outCipher.doFinal(message);
+		}
+		catch (BadPaddingException e) {
+			throw new SecurityException("RSA Encrypt: Bad Padding");
+		}
+		catch (IllegalBlockSizeException e) {
+			e.printStackTrace();
+			throw new SecurityException("RSA Encrypt: Illegal Block Size");
+		}
+	}
+	
+	public byte[] getRSASelfSigned(byte[] message) throws SecurityException{
+		if(outCipher == null) throw new SecurityException("Unable to encrypt before Receiver RSA key has been initialized");
+		try {
+			return outDeCipher.doFinal(message);
 		}
 		catch (BadPaddingException e) {
 			throw new SecurityException("RSA Encrypt: Bad Padding");
