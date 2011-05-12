@@ -46,10 +46,8 @@ public class StealthNetClient {
 	//private SecureLayer secureLayer;
 	JTextField creditsBox;
 
-	private int credits = 0;		// CHANGEME: Give them 100 credits for demonstration purposes
+	private int credits = 0;
 	private HashStalk wallet = null;
-
-	private UserID myID;
 
 	private class SecretData {
 		String description = null;
@@ -663,7 +661,7 @@ public class StealthNetClient {
 					StealthNetPacket p = new StealthNetPacket();
 					int amount = StealthNetComms.btoi(pckt.data);
 					
-					if (wallet != null || wallet.getSize() == 0)
+					if (wallet == null || (wallet != null && wallet.getSize() == 0))
 					{
 						wallet = new HashStalk(amount + 10);
 						
