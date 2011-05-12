@@ -30,6 +30,7 @@ public class StealthNetServerThread extends Thread {
     private class UserData {
         StealthNetServerThread userThread = null;
         int credits = 0;
+        byte[] hashTop = null;
     }
     
 	private class SecretData {
@@ -327,23 +328,121 @@ public class StealthNetServerThread extends Thread {
 						break;
 					}
 					
-					String user = secretInfo.owner;
-					userInfo = (UserData)userList.get(user);
+					//Sort out payment
+					userInfo = (UserData)userList.get(userID);
+					int cost = secretInfo.cost - userInfo.credits;
+					if (cost > 0)
+					{
+						StealthNetPacket p = new StealthNetPacket();
+						
+						//Send amount owed
+						stealthComms.sendPacket(StealthNetPacket.CMD_PAY, StealthNetComms.itob(cost));
 
-					if ((userInfo == null) || (userInfo.userThread == null)) {
+						p = stealthComms.recvPacket();
+						if (p.command == StealthNetPacket.CMD_HASHSTALK)
+						{
+							//Set up a new hash stalk
+							userInfo.hashTop = p.data;
+							stealthComms.sendPacket(StealthNetPacket.CMD_HASHSTALK);
+							
+							//Now wait again for payment
+							p = stealthComms.recvPacket();
+							
+						} else if (p.command == StealthNetPacket.CMD_PAYPART) {
+							byte[] coin = new byte[HashStalk.HASH_NUM_BYTES] ;
+							byte[] amountb = new byte[p.data.length - HashStalk.HASH_NUM_BYTES];
+							byte[] check = null;
+							int amount = 0;
+							
+							//Get coin
+							SecureLayer.byteSplit(p.data, coin, amountb);
+							amount = StealthNetComms.btoi(amountb);
+							
+							//Check coin is valid
+							check = HashStalk.getHash(coin, amount);
+							if (!StealthNetComms.byteEqual(check, userInfo.hashTop))
+							{
+								stealthComms.sendPacket(StealthNetPacket.CMD_MSG,
+									"[*SVR*] Payment not accepted!");
+								break;
+							}
+							
+							cost -= amount;
+							
+							p = stealthComms.recvPacket();
+							if (p.command == StealthNetPacket.CMD_HASHSTALK)
+							{
+								//Set up a new hash stalk
+								userInfo.hashTop = p.data;
+								stealthComms.sendPacket(StealthNetPacket.CMD_HASHSTALK);
+								p = stealthComms.recvPacket();
+							} else {
+								userInfo.hashTop = null;
+								break;
+							}
+						}
+						
+						if (p.command == StealthNetPacket.CMD_PAY) {
+							byte[] coin = new byte[HashStalk.HASH_NUM_BYTES] ;
+							byte[] amountb = new byte[p.data.length - HashStalk.HASH_NUM_BYTES];
+							byte[] check = null;
+							int amount = 0;
+							
+							//Get coin
+							SecureLayer.byteSplit(p.data, coin, amountb);
+							amount = StealthNetComms.btoi(amountb);
+							
+							//Check we actually got enough
+							if (amount < cost)
+							{
+								stealthComms.sendPacket(StealthNetPacket.CMD_MSG,
+									"[*SVR*] Not enough funds!");
+								break;
+							}
+							
+							//Check coin is valid
+							check = HashStalk.getHash(coin, amount);
+							if (!StealthNetComms.byteEqual(check, userInfo.hashTop))
+							{
+								stealthComms.sendPacket(StealthNetPacket.CMD_MSG,
+									"[*SVR*] Payment not accepted!");
+								break;
+							}
+							
+							//Add amount to user and set new top
+							//This ensure we can't respend coins
+							userInfo.credits = amount;
+							userInfo.hashTop = coin;
+							
+						} else {
+							stealthComms.sendPacket(StealthNetPacket.CMD_MSG,
+								"[*SVR*] Payment error!");
+							break;
+						}
+					}
+					
+					//If we got here, we know we have enough verified money to pay
+					userInfo.credits -= cost;
+					stealthComms.sendPacket(StealthNetPacket.CMD_BALANCE, Integer.toString(userInfo.credits));
+					
+					UserData ownerInfo = null;
+					String user = secretInfo.owner;
+					ownerInfo = (UserData)userList.get(user);
+
+					if ((ownerInfo == null) || (ownerInfo.userThread == null)) {
 						stealthComms.sendPacket(StealthNetPacket.CMD_MSG,
 							"[*SVR*] Secret is not currently available");
-					} else if (userInfo.userThread == Thread.currentThread()) {
+					} else if (ownerInfo.userThread == Thread.currentThread()) {
 						stealthComms.sendPacket(StealthNetPacket.CMD_MSG,
 							"[*SVR*] You can't purchase a secret from yourself!");
 					} else {
 						String fName = secretInfo.dirname + secretInfo.filename;
-						userInfo.userThread.stealthComms.sendPacket(
+						ownerInfo.userThread.stealthComms.sendPacket(
 							StealthNetPacket.CMD_GETSECRET, fName + "@" + iAddr);
 						
-						userInfo.credits += secretInfo.cost;
-						userInfo.userThread.stealthComms.sendPacket(
-							StealthNetPacket.CMD_BALANCE, Integer.toString(userInfo.credits));
+						ownerInfo.credits += secretInfo.cost;
+						ownerInfo.userThread.stealthComms.sendPacket(
+							StealthNetPacket.CMD_BALANCE, Integer.toString(ownerInfo.credits));
 					}
 
 					break;

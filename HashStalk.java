@@ -43,12 +43,12 @@ public class HashStalk {
 		return size;
 	}
 	
-	public static boolean check(byte[] c, int n, byte[] t)
-	{
-		return (getHash(c, n) == t);
-	}
+	//public static boolean check(byte[] c, int n, byte[] t)
+	//{
+	//	return (getHash(c, n) == t);
+	//}
 	
-	private static byte[] getHash(byte[] h, int n)
+	public static byte[] getHash(byte[] h, int n)
 	{
 		MessageDigest sha = null;
 		

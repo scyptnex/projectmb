@@ -47,6 +47,9 @@ public class StealthNetClient {
 	JTextField creditsBox;
 
 	private int credits = 0;		// CHANGEME: Give them 100 credits for demonstration purposes
+	private HashStalk wallet = null;
+
+	private UserID myID;
 
 	private class SecretData {
 		String description = null;
@@ -469,7 +472,7 @@ public class StealthNetClient {
 			chatSocket.setSoTimeout(2000);  // 2 second timeout
 			StealthNetComms snComms = new StealthNetComms(new SecureLayer(myID.getPub(), myID.getPri()));
 			snComms.acceptSession(chatSocket.accept());
-			new StealthNetChat(myID.uname, snComms).start();
+			new StealthNetChat(myID, snComms).start();
 		} catch (Exception e) {
 			msgTextBox.append("[*ERR*] Chat failed.\n");
 		}
@@ -560,7 +563,7 @@ public class StealthNetClient {
 					iAddr = iAddr.substring(0, iAddr.lastIndexOf(":"));
 					snComms = new StealthNetComms(new SecureLayer(myID.getPub(), myID.getPri()));
 					snComms.initiateSession(new Socket(iAddr, iPort.intValue()));
-					new StealthNetChat(myID.uname, snComms).start();
+					new StealthNetChat(myID, snComms).start();
 					break;
 
 				case StealthNetPacket.CMD_FTP :
@@ -648,10 +651,48 @@ public class StealthNetClient {
 
 					break;
 					
+				case StealthNetPacket.CMD_PAY:
+					StealthNetPacket p = new StealthNetPacket();
+					int amount = StealthNetComms.btoi(pckt.data);
+					
+					if (wallet != null || wallet.getSize() == 0)
+					{
+						wallet = new HashStalk(amount + 10);
+						
+						//Verify with bank here
+						
+						stealthComms.sendPacket(StealthNetPacket.CMD_HASHSTALK, wallet.getTop());
+						p = stealthComms.recvPacket();
+						
+						if (p.command != StealthNetPacket.CMD_HASHSTALK) break;
+						
+					} else if (wallet.getSize() < amount) {
+						//Pay part of the fee
+						byte[] walletsize = StealthNetComms.itob(wallet.getSize());
+						byte[] paypart = SecureLayer.byteJoin(wallet.getCoin(wallet.getSize()), walletsize);
+						stealthComms.sendPacket(StealthNetPacket.CMD_PAYPART, paypart);
+						
+						//Then generate a new hashstalk
+						wallet = new HashStalk(amount + 10);
+						
+						//Verify with bank here
+						
+						stealthComms.sendPacket(StealthNetPacket.CMD_HASHSTALK, wallet.getTop());
+						p = stealthComms.recvPacket();
+						
+						if (p.command != StealthNetPacket.CMD_HASHSTALK) break;
+					}
+					
+					byte[] walletsize = StealthNetComms.itob(wallet.getSize());
+					byte[] pay = SecureLayer.byteJoin(wallet.getCoin(wallet.getSize()), walletsize);
+					stealthComms.sendPacket(StealthNetPacket.CMD_PAY, pay);
+					
+					break;
+					
 				case StealthNetPacket.CMD_BALANCE :
 					
 					//lololol
-					credits = new Integer (new String(pckt.data));
+					credits = Integer.parseInt(new String(pckt.data));
 					
 					break;
 
