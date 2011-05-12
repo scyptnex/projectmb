@@ -1,17 +1,5 @@
-Hey Nic, hopefully you read this.
+ALEX
 
-Last night I got most of the authentication stuff done but I ran into some problems. Firstly, with RSA encryption it seems that we cannot encrypt anything of largeish length. It throws IllegalBlockSizeException (or something), which apparently should never happen when we use padding (which we do). And using update instead of doFinal doesn't help.
+stop modifying SNClient
 
-Secondly, a similar issue with AES. It's giving me a block size exception this time. I can encrypt and decrypt the message on the server side, but when I try to make a packet out of it and send it to the server, it doesn't decrypt. I've just had a horrible thought that I forget to deal with the command byte, so I'll check if that's the problem later. It was 1am when I was doing this so it's entirely possible I did something stupid like that.
-
-Anyway, I still haven't looked at client/client stuff but it should be the same anyway. I'll have another crack at it tonight hopefully.
-
---read by nic 10-3-31-12:03
-Alex: Lets hope you read this (before i tell you it at comp geom :)
-	RSA max send (for 2048 bits) is 245 bytes (1960 bits) and hence too small to fit a key (which, because it is encoded in decimal, is actually 630 bytes)
-	This is remedied by sending RSA keys literally in the  clear.
-	245 bytes is more than enough to securely exchange all components of the AES key (16 byte IV, 16 byte key, 32 byte mac password) = 64 bytes
-	I have been unable to get illegal block size for AES
-
-	HOW I WOULD HAVE DONE IT would be to take care of building the rsa and aes during the init/accept routines. and the sendpacket/recvpacket routines would only ever work with AES
-This would require you to make your own sending/receiving routines which would only be used in init/accept for RSA, but that is easy, just dataIn.readLine() and dataOut.println()
+Look at UID, it holds the client persistant RSA descriptions

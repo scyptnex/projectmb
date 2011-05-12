@@ -51,7 +51,7 @@ public class StealthNetComms {
 		}
 	}
 
-	public StealthNetComms() {
+	/**public StealthNetComms() {
 		commsSocket = null;
 		dataIn = null;
 		dataOut = null;
@@ -62,7 +62,7 @@ public class StealthNetComms {
 			System.out.println("Problem initialising RSA.");
 			//TODO Do something better here?
 		}
-	}
+	}**/
 	
 	public StealthNetComms(SecureLayer sl) {
 		commsSocket = null;

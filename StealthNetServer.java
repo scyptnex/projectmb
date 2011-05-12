@@ -25,10 +25,13 @@ import java.net.*;
 
 /* StealthNetServer Class Definition *****************************************/
 
-public class StealthNetServer {	
+public class StealthNetServer {
+	
+	public static final String SERVER_ID = "server";
+	
 	public static void main(String[] args) throws IOException {
 		ServerSocket svrSocket = null;
-		SecureLayer secureLayer;
+		UserID serverID = null;
 		
 		//CHEESE
 		int sport = StealthNetComms.getDefaultServerPort();
@@ -47,15 +50,20 @@ public class StealthNetServer {
 
 		System.out.println("Server [port:" + svrSocket.getLocalPort() + "] online...");
 		
-		System.out.println("Initialising RSA");
-		secureLayer = new SecureLayer();
-		secureLayer.selfInitRSA();
+		while(serverID == null){
+			System.out.println("Logging in server");
+			serverID = UserID.login(SERVER_ID, "serverPASSWORDisCOMPLICATED19343298126192827209385749376138726348".toCharArray());
+		}
 		
-		System.out.println("RSA Inited " + new String(secureLayer.descMyPublic()));
+		UserID.savePublic(serverID.uname, serverID.getPub());
+		//secureLayer = new SecureLayer();
+		//secureLayer.selfInitRSA();
+		
+		//System.out.println("RSA Inited " + new String(secureLayer.descMyPublic()));
 		
 		while (true) {
 			try {
-				new StealthNetServerThread(svrSocket.accept(), secureLayer).start();
+				new StealthNetServerThread(svrSocket.accept(), serverID).start();
 			} catch (IOException e) {
 				System.out.println("Server denied a connection.");
 			}

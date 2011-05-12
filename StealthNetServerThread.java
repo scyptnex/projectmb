@@ -29,6 +29,8 @@ import java.util.*;
 public class StealthNetServerThread extends Thread {
     private class UserData {
         StealthNetServerThread userThread = null;
+        int credits = 0;
+        SecureLayer sl = secl;
     }
     
 	private class SecretData {
@@ -45,13 +47,16 @@ public class StealthNetServerThread extends Thread {
     
     private String userID = null;
     private StealthNetComms stealthComms = null;
-    private SecureLayer secureLayer;
+    private byte[] pubKey, priKey;
+    private final SecureLayer secl;
 
-    public StealthNetServerThread(Socket socket, SecureLayer sl)  throws IOException {
+    public StealthNetServerThread(Socket socket, UserID servID)  throws IOException {
         super("StealthNetServerThread");
         System.out.println("new thread");
-        secureLayer = sl;
-        stealthComms = new StealthNetComms(new SecureLayer(sl));
+        pubKey = servID.getPub();
+        priKey = servID.getPri();
+        secl = new SecureLayer(pubKey, priKey);
+        stealthComms = new StealthNetComms(secl);
         if (!stealthComms.acceptSession(socket))
         {
         	throw new IOException("Cannot initiate secure comms.");
@@ -205,6 +210,22 @@ public class StealthNetServerThread extends Thread {
                         sendUserList();
 	                    sendSecretList();
                     }
+                    byte[] tryPreviousPublic = UserID.getPublic(userID);
+                    if(tryPreviousPublic == null){
+                    	System.out.println("User " + userID + " has logged in for the first time");
+                    	UserID.savePublic(userID, secl.descYourPublic());
+                    }
+                    else{
+                    	System.out.println("User " + userID + " is logging in again");
+                    	if(secl.checkAuthenticity(tryPreviousPublic)){
+                    	}
+                    	else{
+                    		System.out.println("user \"" + userID + "\" failed authenticity");
+                            pckt.command = StealthNetPacket.CMD_LOGOUT;
+                            userID = null;
+                            stealthComms.terminateSession();
+                    	}
+                    }
                     break;
 
                 case StealthNetPacket.CMD_LOGOUT :
@@ -338,6 +359,10 @@ public class StealthNetServerThread extends Thread {
 						String fName = secretInfo.dirname + secretInfo.filename;
 						userInfo.userThread.stealthComms.sendPacket(
 							StealthNetPacket.CMD_GETSECRET, fName + "@" + iAddr);
+						
+						userInfo.credits += secretInfo.cost;
+						userInfo.userThread.stealthComms.sendPacket(
+							StealthNetPacket.CMD_BALANCE, Integer.toString(userInfo.credits));
 					}
 
 					break;

@@ -43,7 +43,7 @@ public class SecureLayer {
 	private byte[] rsaMacRaw;
 	private byte[] aesMacRaw;
 	
-	public static void main(String[] args) throws Exception{
+	/**public static void main(String[] args) throws Exception{
 		long tmp = System.currentTimeMillis();
 		SecureLayer sl = new SecureLayer();
 		sl.selfInitAES();
@@ -109,9 +109,9 @@ public class SecureLayer {
 		aesMac = null;
 		rsaMacRaw = null;
 		aesMacRaw = null;
-	}
+	}**/
 	
-	public SecureLayer(SecureLayer s){
+	public SecureLayer(byte[] myPub, byte[] myPri){
 		rand = new SecureRandom(new SecureRandom().generateSeed(32));
 		
 		yourPublic = null;
@@ -132,7 +132,7 @@ public class SecureLayer {
 		aesMacRaw = null;
 		
 		try {
-			initRSAMe(s.descMyPublic(), s.descMyPrivate());
+			initRSAMe(myPub, myPri);
 		} catch (Exception e) {
 			//Uhhh yeah
 		}
@@ -143,6 +143,25 @@ public class SecureLayer {
 	 * These are the actual ones the user will call alot
 	 * These methods string together secure and non-secure functions to perform some useful task
 	 */
+	
+	//used to check the person i'm talking to is the person they claim to be
+	public boolean checkAuthenticity(byte[] expectedYourPublic){
+		try{
+			byte[] keyDesc = descYourPublic();
+			if(expectedYourPublic.length != keyDesc.length){
+				return false;
+			}
+			for(int i=0; i<expectedYourPublic.length; i++){
+				if(expectedYourPublic[i] != keyDesc[i] ) return false;
+			}
+			System.out.println("Authenticity check passed");
+			return true;
+		}
+		catch(Exception e){
+			e.printStackTrace();
+			return false;
+		}
+	}
 	
 	//This method DOES CHECK THE PASSWORDED MAC
 	//but, not all rsa messages are sent with a passworded mac, so use this one with caution
@@ -198,7 +217,7 @@ public class SecureLayer {
 	 * These rely on a good and random secure random, its as random as it'll ever be after initialisation
 	 */
 	
-	public void selfInitRSA() throws SecurityException{
+	/**public void selfInitRSA() throws SecurityException{
 		try{
 			KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
 			keyPairGenerator.initialize(RSA_LENGTH, rand);
@@ -210,7 +229,7 @@ public class SecureLayer {
 		catch (NoSuchAlgorithmException e) {
 			throw new SecurityException("RSA Init: No Such Algorithm");
 		}
-	}
+	}**/
 	
 	public void selfInitAES() throws SecurityException{
 		try{
