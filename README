@@ -1,5 +1,9 @@
 Alex
 
+I'm off to bed, will look at preventing replay when i get to uni early tomorrow probably
+
+Alex
+
 I'm storing files local to the server, the historically remembered login credentials of users
 i.e. if a user logs in for the 2nd time the server checks that it is the same person
 Currently those files are unencrypted, this may cause problems but is a 20 minute fix if need be (i'm ignoring it for now)
