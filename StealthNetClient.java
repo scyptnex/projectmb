@@ -293,7 +293,7 @@ public class StealthNetClient {
 			SecurePrompt secp = new SecurePrompt(clientFrame);
 			String username = secp.getLogin();
 			char[] pass = secp.getPassword();
-			UserID myID = UserID.login(username, pass);
+			myID = UserID.login(username, pass);
 			if (myID == null) return;
 			SecureLayer stealthLayer = new SecureLayer(myID.getPub(), myID.getPri());
 			stealthComms = new StealthNetComms(stealthLayer);

@@ -95,7 +95,7 @@ public class StealthNetChat extends Thread {
     }
 
     private synchronized void sendChat() {
-        String msg = "[" + userID + "] " + msgText.getText();
+        String msg = "[" + userID.uname + "] " + msgText.getText();
 
         chatTextBox.append(msg + "\n");
         if (stealthComms != null)
