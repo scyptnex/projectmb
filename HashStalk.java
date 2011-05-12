@@ -29,7 +29,18 @@ public class HashStalk {
 	
 	public byte[] getCoin(int n)
 	{
-		return getHash(bottom, size - n);
+		if (size - n >= 0)
+		{
+			size -= n;
+			return getHash(bottom, size);
+		} else {
+			return null;
+		}
+	}
+	
+	public int getSize()
+	{
+		return size;
 	}
 	
 	public static boolean check(byte[] c, int n, byte[] t)
