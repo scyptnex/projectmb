@@ -1,0 +1,89 @@
+\documentstyle[11pt]{article}
+
+\author{
+		Nic Hollingum\\
+		308193415\\
+		nhol8058@uni.sydney.edu.au
+	\and
+		Alex Legg\\
+		308148371\\
+		aleg1081@uni.sydney.edu.au
+}
+\title{StealthNet - Even More Security for the Freedom Fighters}
+
+\addtolength{\oddsidemargin}{-.875in}
+\addtolength{\evensidemargin}{-.875in}
+\addtolength{\textwidth}{1.75in}
+\addtolength{\topmargin}{-1.375in}
+\setlength{\topskip}{0mm}
+\addtolength{\textheight}{3.5in}
+\setlength{\parskip}{0mm}
+\setlength{\itemsep}{0mm}
+
+\begin{document}
+\maketitle
+
+\section{Key Exchange Protocol}
+The protocol is a slight modification of the SSL Handshaking procedure. For this description nodes A and B are attempting to open a secure channel, B initiates the communication by opening a connection to the correct host:port.
+
+\begin{enumerate}
+	\item A sends her RSA Public Key in the clear.
+	\item B Receives A's RSA Public Key, B Sends his an RSA Public key in the clear.
+	\item A Receives B's public key. A randomly generates a MAC Password and sends it, encrypted by B's public key.
+	\item B decrypts the MAC.  B randomly generates an AES Key and IV (128 bits each) and sends all 3 items to A, encrypted with A's public key.
+	\item A decrypts the AES Key, IV and Mac.  A ensures B has correctly decrypted the MAC, and reports a problem otherwise.  A sends the IV alone, encrypted by B's public key.
+	\item B decrypts the IV.  B Ensures A has correctly decrypted the IV, and reports a problem otherwise.
+	\item AES communication begins, using the shared secret.
+\end{enumerate}
+
+Note the rationale behind this protocol.
+Each party must make 3 key moves.
+First they must initiate, by sending public keys in the clear
+Next they must test each other's ability to decrypt data encrypted with their public keys.
+Last they must prove that they passed the test set them by the other.
+This 3-stage protocol provides several important security properties.
+
+\subsection{Authentication}
+The handshaking protocol excludes non-authentic clients/servers from communicating.
+Each party must be able to decrypt a random piece of data sent to them by the other, this is a computationally intractable task for anyone who does not hold the private pair of the advertised public key.
+Since AES communication does not commence until both parties have not merely done this, but proven to the other that they have done this, it is guaranteed that communicating parties must hold the private pair of their advertised public keys, and so must be authentic.
+With minor modifications this could be extended to trusted authenticity, which would prevent man-in-the-middle attacks.
+However since more serious machinery would be needed to provide at least one minimally-trusted component of the network this has not been implemented.
+
+\subsection{Confidentiality}
+Confidentiality of communication is ensured by 128 bit AES encryption using Cipher Block Chaining.
+The keys to this cipher are themselves kept confidential by 2048 bit RSA with an Electronic-Code-Book.
+ECB is used during RSA because no RSA communication is made that is larger than 1 block, indeed the total size of the largest data packet is only 512 bits bytes, well below the 1960 block size.
+These encryption mechanisms provide a high degree of random-appearance to all communications both at the block level and at the message level.
+
+\subsection{Integrity}
+Message integrity is ensured by appending a 256 bit MAC to every AES-Encrypted message (before encryption).
+Since changing a single bit in the encrypted stream will result in a 50/50 flip of all bits in the decrypted version, it is near impossible to modify a message without this being detected.
+If the message does not match its MAC, this is flagged to the user and the message is dropped
+
+\section{File System}
+
+Generating keys can be a time consuming process. So instead of repeating it for each new connection we generate them only once and store them in password protected encrypted files. We can assume that the public key of the server is well known, this provides us with the knowledge that the server is indeed who we are connecting to.
+
+The files are encrypted with the password of the StealthNet user and a MAC, this provides us with confidentiality and integrity. However, passwords have a tendency to be insecure. They are vulnerable to brute force and dictionary attacks. To mitigate this problem we add a salt to increase the complexity of the password.
+
+\section{Payment Protocol}
+
+Our payment protocol is as follows.
+First, A sends a request to purchase a secret
+The server checks if A's account has enough to pay.
+If not, a payment request is sent to A for the remainder.
+If A has an existing hash stalk this is sent to the server.
+If A has still not paid enough a new hash stalk is created and coins are sent to the Server.
+
+Hash stalks are way of providing authentication for payments.
+First we generate some random value, $B$.
+Then we hash this value for the number of coins, $n$, we wish to store to give us a top value $T = h^n(B)$.
+The bank then verifies that we can withdraw those coins and sends us a signed tuple containing the user's ID, $n$ and $T$.
+This is then sent to the server (who decrypts it using the bank's public key) to authenticate the user.
+To spend money the user sends the server an amount it wishes to spend $a$ and a hash $H = h^{n-a}(B)$.
+The server can then verify that it is valid to send this coin by checking $h^a(H) = T$.
+The server then takes $H$ as its new $T$. This ensures that the same coins cannot be spent twice.
+And the client sets $n = n - a$. 
+
+\end{document}

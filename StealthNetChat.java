@@ -147,7 +147,7 @@ public class StealthNetChat extends Thread {
         Dimension screenDim = Toolkit.getDefaultToolkit().getScreenSize();
 
         // set up chat window
-        chatFrame = new JFrame("stealthnet chat [" + userID + "]");
+        chatFrame = new JFrame("stealthnet chat [" + userID.uname + "]");
         chatFrame.getContentPane().add(createGUI(), BorderLayout.CENTER);
         chatFrame.pack();
         msgText.requestFocus();

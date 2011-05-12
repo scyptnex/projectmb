@@ -45,7 +45,11 @@ public class StealthNetClient {
 	private DefaultTableModel buddyListData = null, secretListData = null;
 	//private SecureLayer secureLayer;
 	JTextField creditsBox;
-
+	
+	private StealthNetChat checkChat = null;
+	private StealthNetFileTransfer checkTransfer = null;
+	private SecureLayer checkLayer = null; 
+	
 	private int credits = 0;
 	private HashStalk wallet = null;
 
@@ -424,10 +428,16 @@ public class StealthNetClient {
 
 	private boolean isOKtoSendtoRow(int row) {
 		String myid, mystatus;
-
+		
+		System.out.println(buddyTable.getValueAt(row, 0));
+		
 		myid = (String)buddyTable.getValueAt(row, 0);
 		mystatus = (String)buddyTable.getValueAt(row,1);
 
+		System.out.println(myid + ", " + mystatus);
+		
+		System.out.println(myID == null);
+		
 		if (myid.equals(myID.uname)) {
 			msgTextBox.append("[*ERR*] Can't send to self.\n");
 			return false;
@@ -478,7 +488,9 @@ public class StealthNetClient {
 			chatSocket.setSoTimeout(2000);  // 2 second timeout
 			StealthNetComms snComms = new StealthNetComms(new SecureLayer(myID.getPub(), myID.getPri()));
 			snComms.acceptSession(chatSocket.accept());
-			new StealthNetChat(myID, snComms).start();
+			checkChat = new StealthNetChat(myID, snComms);
+			checkLayer = snComms.secureLayer;
+			stealthComms.sendPacket(StealthNetPacket.CMD_REQUESTPUB, myid);
 		} catch (Exception e) {
 			msgTextBox.append("[*ERR*] Chat failed.\n");
 		}
@@ -527,8 +539,9 @@ public class StealthNetClient {
 			ftpSocket.setSoTimeout(2000);  // 2 second timeout
 			StealthNetComms snComms = new StealthNetComms(new SecureLayer(myID.getPub(), myID.getPri()));
 			snComms.acceptSession(ftpSocket.accept());
-			new StealthNetFileTransfer(snComms,
-					fileOpen.getDirectory() + fileOpen.getFile(), true).start();
+			checkTransfer = new StealthNetFileTransfer(snComms, fileOpen.getDirectory() + fileOpen.getFile(), true);
+			checkLayer = snComms.secureLayer;
+			stealthComms.sendPacket(StealthNetPacket.CMD_REQUESTPUB, myid);
 		} catch (Exception e) {
 			msgTextBox.append("[*ERR*] FTP failed.\n");
 		}
@@ -564,16 +577,20 @@ public class StealthNetClient {
 
 				case StealthNetPacket.CMD_CHAT :
 					iAddr = new String(pckt.data);
+					String nam = iAddr.substring(0, iAddr.lastIndexOf("@"));
 					iAddr = iAddr.substring(iAddr.lastIndexOf("@") + 1);
 					iPort = new Integer(iAddr.substring(iAddr.lastIndexOf(":") + 1));
 					iAddr = iAddr.substring(0, iAddr.lastIndexOf(":"));
 					snComms = new StealthNetComms(new SecureLayer(myID.getPub(), myID.getPri()));
 					snComms.initiateSession(new Socket(iAddr, iPort.intValue()));
-					new StealthNetChat(myID, snComms).start();
+					checkChat = new StealthNetChat(myID, snComms);
+					checkLayer = snComms.secureLayer;
+					stealthComms.sendPacket(StealthNetPacket.CMD_REQUESTPUB, nam);
 					break;
 
 				case StealthNetPacket.CMD_FTP :
 					iAddr = new String(pckt.data);
+					nam = iAddr.substring(0, iAddr.lastIndexOf("@"));
 					iAddr = iAddr.substring(iAddr.lastIndexOf("@") + 1);
 					fName = iAddr.substring(iAddr.lastIndexOf("#") + 1);
 					iAddr = iAddr.substring(0, iAddr.lastIndexOf("#"));
@@ -587,8 +604,9 @@ public class StealthNetClient {
 					fileSave.setFile(fName);
 					fileSave.show();
 					if ((fileSave.getFile() != null) && (fileSave.getFile().length() > 0)) {
-						new StealthNetFileTransfer(snComms,
-								fileSave.getDirectory() + fileSave.getFile(), false).start();
+						checkTransfer = new StealthNetFileTransfer(snComms, fileSave.getDirectory() + fileSave.getFile(), false);
+						checkLayer = snComms.secureLayer;
+						stealthComms.sendPacket(StealthNetPacket.CMD_REQUESTPUB, nam);
 					}
 					break;
 
@@ -701,7 +719,27 @@ public class StealthNetClient {
 					credits = Integer.parseInt(new String(pckt.data));
 					
 					break;
-
+					
+				case StealthNetPacket.CMD_PROVIDEPUB :{
+					byte[] check = pckt.data;
+					System.out.println("receiving pub desc");
+					if(checkLayer != null){
+						Thread checkEntity = (checkChat == null? checkTransfer : checkChat);
+						if(checkLayer.checkAuthenticity(check)){
+							checkEntity.start();
+							checkChat = null;
+							checkTransfer = null;
+						}
+						else{
+							System.err.println("That client did not provide the correct public key");
+							if(checkChat != null) checkChat.finalise();
+						}
+						checkLayer = null;
+						checkChat = null;
+						checkTransfer = null;
+					}
+					break;
+				}
 				default :
 					System.out.println("unrecognised command");
 				}
