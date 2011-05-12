@@ -46,7 +46,9 @@ public class StealthNetClient {
 	//private SecureLayer secureLayer;
 	JTextField creditsBox;
 	
-	private StealthNetChat checkChat;
+	private StealthNetChat checkChat = null;
+	private StealthNetFileTransfer checkTransfer = null;
+	private SecureLayer checkLayer = null; 
 	
 	private int credits = 0;
 	private HashStalk wallet = null;
@@ -480,7 +482,6 @@ public class StealthNetClient {
 		}
 		iAddr += ":" + Integer.toString(chatSocket.getLocalPort());
 		stealthComms.sendPacket(StealthNetPacket.CMD_CHAT, myid + "@" + iAddr);
-		stealthComms.sendPacket(StealthNetPacket.CMD_REQUESTPUB, myid);
 
 		// wait for user to connect and open chat window
 		try {
@@ -488,6 +489,8 @@ public class StealthNetClient {
 			StealthNetComms snComms = new StealthNetComms(new SecureLayer(myID.getPub(), myID.getPri()));
 			snComms.acceptSession(chatSocket.accept());
 			checkChat = new StealthNetChat(myID, snComms);
+			checkLayer = snComms.secureLayer;
+			stealthComms.sendPacket(StealthNetPacket.CMD_REQUESTPUB, myid);
 		} catch (Exception e) {
 			msgTextBox.append("[*ERR*] Chat failed.\n");
 		}
@@ -536,8 +539,9 @@ public class StealthNetClient {
 			ftpSocket.setSoTimeout(2000);  // 2 second timeout
 			StealthNetComms snComms = new StealthNetComms(new SecureLayer(myID.getPub(), myID.getPri()));
 			snComms.acceptSession(ftpSocket.accept());
-			new StealthNetFileTransfer(snComms,
-					fileOpen.getDirectory() + fileOpen.getFile(), true).start();
+			checkTransfer = new StealthNetFileTransfer(snComms, fileOpen.getDirectory() + fileOpen.getFile(), true);
+			checkLayer = snComms.secureLayer;
+			stealthComms.sendPacket(StealthNetPacket.CMD_REQUESTPUB, myid);
 		} catch (Exception e) {
 			msgTextBox.append("[*ERR*] FTP failed.\n");
 		}
@@ -580,11 +584,13 @@ public class StealthNetClient {
 					snComms = new StealthNetComms(new SecureLayer(myID.getPub(), myID.getPri()));
 					snComms.initiateSession(new Socket(iAddr, iPort.intValue()));
 					checkChat = new StealthNetChat(myID, snComms);
+					checkLayer = snComms.secureLayer;
 					stealthComms.sendPacket(StealthNetPacket.CMD_REQUESTPUB, nam);
 					break;
 
 				case StealthNetPacket.CMD_FTP :
 					iAddr = new String(pckt.data);
+					nam = iAddr.substring(0, iAddr.lastIndexOf("@"));
 					iAddr = iAddr.substring(iAddr.lastIndexOf("@") + 1);
 					fName = iAddr.substring(iAddr.lastIndexOf("#") + 1);
 					iAddr = iAddr.substring(0, iAddr.lastIndexOf("#"));
@@ -598,8 +604,9 @@ public class StealthNetClient {
 					fileSave.setFile(fName);
 					fileSave.show();
 					if ((fileSave.getFile() != null) && (fileSave.getFile().length() > 0)) {
-						new StealthNetFileTransfer(snComms,
-								fileSave.getDirectory() + fileSave.getFile(), false).start();
+						checkTransfer = new StealthNetFileTransfer(snComms, fileSave.getDirectory() + fileSave.getFile(), false);
+						checkLayer = snComms.secureLayer;
+						stealthComms.sendPacket(StealthNetPacket.CMD_REQUESTPUB, nam);
 					}
 					break;
 
@@ -716,12 +723,20 @@ public class StealthNetClient {
 				case StealthNetPacket.CMD_PROVIDEPUB :{
 					byte[] check = pckt.data;
 					System.out.println("receiving pub desc");
-					if(checkChat.chatLayer.checkAuthenticity(check)){
-						checkChat.start();//this is such a fuckign hack
-					}
-					else{
-						System.err.println("That client did not provide the correct public key");
-						checkChat.finalise();
+					if(checkLayer != null){
+						Thread checkEntity = (checkChat == null? checkTransfer : checkChat);
+						if(checkLayer.checkAuthenticity(check)){
+							checkEntity.start();
+							checkChat = null;
+							checkTransfer = null;
+						}
+						else{
+							System.err.println("That client did not provide the correct public key");
+							if(checkChat != null) checkChat.finalise();
+						}
+						checkLayer = null;
+						checkChat = null;
+						checkTransfer = null;
 					}
 					break;
 				}
