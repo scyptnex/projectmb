@@ -40,7 +40,7 @@ public class StealthNetClient {
 	private JButton loginBtn;
 	private StealthNetComms stealthComms = null;
 	private javax.swing.Timer stealthTimer;
-	private UserID userID = null;
+	private UserID myID = null;
 	private JTable buddyTable = null, secretTable = null;
 	private DefaultTableModel buddyListData = null, secretListData = null;
 	//private SecureLayer secureLayer;
@@ -469,7 +469,7 @@ public class StealthNetClient {
 			chatSocket.setSoTimeout(2000);  // 2 second timeout
 			StealthNetComms snComms = new StealthNetComms(new SecureLayer(myID.getPub(), myID.getPri()));
 			snComms.acceptSession(chatSocket.accept());
-			new StealthNetChat(myID.uname, snComms).start();
+			new StealthNetChat(myID, snComms).start();
 		} catch (Exception e) {
 			msgTextBox.append("[*ERR*] Chat failed.\n");
 		}
@@ -560,7 +560,7 @@ public class StealthNetClient {
 					iAddr = iAddr.substring(0, iAddr.lastIndexOf(":"));
 					snComms = new StealthNetComms(new SecureLayer(myID.getPub(), myID.getPri()));
 					snComms.initiateSession(new Socket(iAddr, iPort.intValue()));
-					new StealthNetChat(myID.uname, snComms).start();
+					new StealthNetChat(myID, snComms).start();
 					break;
 
 				case StealthNetPacket.CMD_FTP :

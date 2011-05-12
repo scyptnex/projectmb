@@ -22,6 +22,8 @@ public class UserID {
 	
 	public static UserID login(String uname, char[] pass){
 		try{
+			UserID attempt = load(uname, pass);
+			if(attempt != null) return attempt;
 			SecureLayer tempLayer = new SecureLayer();
 			tempLayer.selfInitRSA();
 			return new UserID(uname, pass, tempLayer.descMyPublic(), tempLayer.descMyPrivate());
@@ -32,70 +34,60 @@ public class UserID {
 		}
 	}
 	
-	private UserID load(String uname, char[] pass){
+	private static UserID load(String uname, char[] pass){
+		try{
+			File infi = new File(uname + ".pass");
+			if(!infi.exists()) return null;
+			
+			Mac ma = grabMac(new String(pass));
+			Cipher ci = grabPBECipher(pass, false);
+			
+			InputStream fis = new FileInputStream(infi);//new CipherInputStream(new FileInputStream(infi), ci);
+			
+			byte[] totin = new byte[(int)infi.length()*2];
+			int numRead = 0;
+			int totRead = 0;
+			while((numRead = fis.read(totin, totRead, totin.length - totRead) ) >= 0){
+				totRead += numRead;
+			}
+			byte[] publen = new byte[20];
+			byte[] prilen = new byte[20];
+			System.arraycopy(totin, 0, publen, 0, 20);
+			System.arraycopy(totin, 20, prilen, 0, 20);
+			System.out.println(totin.length + ", " + totRead);
+			System.out.println(HashStalk.hexify(publen) + " : " + HashStalk.hexify(prilen));
+			System.out.println(HashStalk.hexify(totin));
+		}
+		catch(Exception e){
+			e.printStackTrace();
+		}
 		return null;
-	}
-	
-	private static Mac grabMac(String passString) throws NoSuchAlgorithmException, InvalidKeyException{
-		Mac hmac = Mac.getInstance(MAC_STANDARD);
-		SecretKeySpec secret = new SecretKeySpec(SecureLayer.stob(passString), MAC_STANDARD);
-		hmac.init(secret);
-		return hmac;
-	}
-	
-	private static Cipher grabPBECipher(char[] password, boolean encrypt) throws InvalidKeySpecException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException{
-		PBEKeySpec pbeKeySpec;
-		PBEParameterSpec pbeParamSpec;
-		SecretKeyFactory keyFac;
-
-		// Salt
-		byte[] salt = {
-				(byte)0xc7, (byte)0x73, (byte)0x21, (byte)0x8c,
-				(byte)0x7e, (byte)0xc8, (byte)0xee, (byte)0x99
-		};
-
-		// Iteration count
-		int count = 20;
-
-		// Create PBE parameter set
-		pbeParamSpec = new PBEParameterSpec(salt, count);
-		pbeKeySpec = new PBEKeySpec(password);
-		keyFac = SecretKeyFactory.getInstance("PBEWithSHA1AndDESede");
-		SecretKey pbeKey = keyFac.generateSecret(pbeKeySpec);
-		
-		// Create PBE Cipher
-		Cipher pbeCipher = Cipher.getInstance("PBEWithSHA1AndDESede");
-		if(encrypt){
-			pbeCipher.init(Cipher.ENCRYPT_MODE, pbeKey, pbeParamSpec);
-		}
-		else{
-			pbeCipher.init(Cipher.DECRYPT_MODE, pbeKey, pbeParamSpec);
-		}
-		return pbeCipher;
 	}
 	
 	private boolean saveSelf(){
 		try{
-			Mac ma = grabMac(pass());
-			Cipher ci = grabPBECipher(pass, true);
 			File saveFile = new File(uname + ".pass");
 			if(saveFile.exists()) ;//return false; //TODO remove comment
 			saveFile.createNewFile();
+			
+			Mac ma = grabMac(pass());
+			Cipher ci = grabPBECipher(pass, true);
+			
 			byte[] publen = pad(rsaPublic.length, 20);
 			byte[] prilen = pad(rsaPrivate.length, 20);
 			ma.update(publen);
 			ma.update(rsaPublic);
 			ma.update(prilen);
 			byte[] hash = ma.doFinal(rsaPrivate);
-			System.out.println(HashStalk.hexify(hash));
-			FileOutputStream fos = new FileOutputStream(saveFile);
-			fos.write(publen);
-			fos.write(rsaPublic);
-			fos.write(prilen);
-			fos.write(rsaPrivate);
-			fos.write(hash);
-			//byte[] some = 
-			//System.out.println(tot.length + " - " + HashStalk.hexify(tot));
+			OutputStream fos = new FileOutputStream(saveFile);
+			fos.write(publen);//ci.update(publen));
+			fos.write(prilen);//ci.update(prilen));
+			fos.write(rsaPublic);//ci.update(rsaPublic));
+			fos.write(rsaPrivate);//ci.update(rsaPrivate));
+			fos.write(hash);//ci.doFinal(hash));
+			fos.close();
+			System.out.println(rsaPublic.length + rsaPrivate.length + 40 + (MAC_LENGTH/8));
+			System.out.println(HashStalk.hexify(publen) + HashStalk.hexify(prilen) + HashStalk.hexify(rsaPublic) + HashStalk.hexify(rsaPrivate) + HashStalk.hexify(hash));
 			return true;
 		}
 		catch(Exception e){
@@ -135,6 +127,44 @@ public class UserID {
 			else tot[i] = 0;
 		}
 		return tot;
+	}
+	
+	private static Mac grabMac(String passString) throws NoSuchAlgorithmException, InvalidKeyException{
+		Mac hmac = Mac.getInstance(MAC_STANDARD);
+		SecretKeySpec secret = new SecretKeySpec(SecureLayer.stob(passString), MAC_STANDARD);
+		hmac.init(secret);
+		return hmac;
+	}
+	
+	private static Cipher grabPBECipher(char[] password, boolean encrypt) throws InvalidKeySpecException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, InvalidAlgorithmParameterException{
+		PBEKeySpec pbeKeySpec;
+		PBEParameterSpec pbeParamSpec;
+		SecretKeyFactory keyFac;
+
+		// Salt
+		byte[] salt = {
+				(byte)0xc7, (byte)0x73, (byte)0x21, (byte)0x8c,
+				(byte)0x7e, (byte)0xc8, (byte)0xee, (byte)0x99
+		};
+
+		// Iteration count
+		int count = 20;
+
+		// Create PBE parameter set
+		pbeParamSpec = new PBEParameterSpec(salt, count);
+		pbeKeySpec = new PBEKeySpec(password);
+		keyFac = SecretKeyFactory.getInstance("PBEWithSHA1AndDESede");
+		SecretKey pbeKey = keyFac.generateSecret(pbeKeySpec);
+		
+		// Create PBE Cipher
+		Cipher pbeCipher = Cipher.getInstance("PBEWithSHA1AndDESede");
+		if(encrypt){
+			pbeCipher.init(Cipher.ENCRYPT_MODE, pbeKey, pbeParamSpec);
+		}
+		else{
+			pbeCipher.init(Cipher.DECRYPT_MODE, pbeKey, pbeParamSpec);
+		}
+		return pbeCipher;
 	}
 	
 }
