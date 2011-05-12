@@ -30,10 +30,12 @@ public class StealthNetChat extends Thread {
     private JTextField msgText;
     private StealthNetComms stealthComms = null;
     private UserID userID;
+    public final SecureLayer chatLayer;
 
     public StealthNetChat(UserID id, StealthNetComms snComms) {
         userID = id;
         stealthComms = snComms;
+        chatLayer = snComms.secureLayer;
     }
     
     protected void finalise() throws IOException {

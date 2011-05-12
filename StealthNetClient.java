@@ -45,7 +45,9 @@ public class StealthNetClient {
 	private DefaultTableModel buddyListData = null, secretListData = null;
 	//private SecureLayer secureLayer;
 	JTextField creditsBox;
-
+	
+	private StealthNetChat checkChat;
+	
 	private int credits = 0;
 	private HashStalk wallet = null;
 
@@ -478,13 +480,14 @@ public class StealthNetClient {
 		}
 		iAddr += ":" + Integer.toString(chatSocket.getLocalPort());
 		stealthComms.sendPacket(StealthNetPacket.CMD_CHAT, myid + "@" + iAddr);
+		stealthComms.sendPacket(StealthNetPacket.CMD_REQUESTPUB, myid);
 
 		// wait for user to connect and open chat window
 		try {
 			chatSocket.setSoTimeout(2000);  // 2 second timeout
 			StealthNetComms snComms = new StealthNetComms(new SecureLayer(myID.getPub(), myID.getPri()));
 			snComms.acceptSession(chatSocket.accept());
-			new StealthNetChat(myID, snComms).start();
+			checkChat = new StealthNetChat(myID, snComms);
 		} catch (Exception e) {
 			msgTextBox.append("[*ERR*] Chat failed.\n");
 		}
@@ -570,12 +573,14 @@ public class StealthNetClient {
 
 				case StealthNetPacket.CMD_CHAT :
 					iAddr = new String(pckt.data);
+					String nam = iAddr.substring(0, iAddr.lastIndexOf("@"));
 					iAddr = iAddr.substring(iAddr.lastIndexOf("@") + 1);
 					iPort = new Integer(iAddr.substring(iAddr.lastIndexOf(":") + 1));
 					iAddr = iAddr.substring(0, iAddr.lastIndexOf(":"));
 					snComms = new StealthNetComms(new SecureLayer(myID.getPub(), myID.getPri()));
 					snComms.initiateSession(new Socket(iAddr, iPort.intValue()));
-					new StealthNetChat(myID, snComms).start();
+					checkChat = new StealthNetChat(myID, snComms);
+					stealthComms.sendPacket(StealthNetPacket.CMD_REQUESTPUB, nam);
 					break;
 
 				case StealthNetPacket.CMD_FTP :
@@ -707,7 +712,19 @@ public class StealthNetClient {
 					credits = Integer.parseInt(new String(pckt.data));
 					
 					break;
-
+					
+				case StealthNetPacket.CMD_PROVIDEPUB :{
+					byte[] check = pckt.data;
+					System.out.println("receiving pub desc");
+					if(checkChat.chatLayer.checkAuthenticity(check)){
+						checkChat.start();//this is such a fuckign hack
+					}
+					else{
+						System.err.println("That client did not provide the correct public key");
+						checkChat.finalise();
+					}
+					break;
+				}
 				default :
 					System.out.println("unrecognised command");
 				}

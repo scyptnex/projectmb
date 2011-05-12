@@ -42,7 +42,7 @@ public class StealthNetComms {
 	private Socket commsSocket;             // communications socket
 	private PrintWriter dataOut;            // output data stream
 	private BufferedReader dataIn;          // input data stream
-	private SecureLayer secureLayer;
+	public final SecureLayer secureLayer;
 	private int counter;
 	
 	public static class CommsException extends IOException{

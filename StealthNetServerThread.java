@@ -465,7 +465,14 @@ public class StealthNetServerThread extends Thread {
 					}
 
 					break;
-
+				case StealthNetPacket.CMD_REQUESTPUB :{
+					String reqname = new String(pckt.data);
+					SecureLayer osl = ((UserData)userList.get(reqname)).sl;
+					StealthNetPacket reply = new StealthNetPacket(StealthNetPacket.CMD_PROVIDEPUB, osl.descYourPublic());
+					System.out.println(userID + " wants public of " + reqname);
+					stealthComms.sendPacket(reply);
+					break;
+				}
                 default :
                     System.out.println("unrecognised command");
                 }
