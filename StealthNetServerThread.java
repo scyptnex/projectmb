@@ -30,6 +30,7 @@ public class StealthNetServerThread extends Thread {
     private class UserData {
         StealthNetServerThread userThread = null;
         int credits = 0;
+        SecureLayer sl = secl;
     }
     
 	private class SecretData {
@@ -47,7 +48,7 @@ public class StealthNetServerThread extends Thread {
     private String userID = null;
     private StealthNetComms stealthComms = null;
     private byte[] pubKey, priKey;
-    private SecureLayer secl;
+    private final SecureLayer secl;
 
     public StealthNetServerThread(Socket socket, UserID servID)  throws IOException {
         super("StealthNetServerThread");
@@ -217,12 +218,12 @@ public class StealthNetServerThread extends Thread {
                     else{
                     	System.out.println("User " + userID + " is logging in again");
                     	if(secl.checkAuthenticity(tryPreviousPublic)){
-                    		System.out.println("Authenticity check passed");
                     	}
                     	else{
                     		System.out.println("user \"" + userID + "\" failed authenticity");
                             pckt.command = StealthNetPacket.CMD_LOGOUT;
                             userID = null;
+                            stealthComms.terminateSession();
                     	}
                     }
                     break;
