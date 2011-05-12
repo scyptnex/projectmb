@@ -25,7 +25,10 @@ import java.net.*;
 
 /* StealthNetServer Class Definition *****************************************/
 
-public class StealthNetServer {	
+public class StealthNetServer {
+	
+	public static final String SERVER_ID = "server";
+	
 	public static void main(String[] args) throws IOException {
 		ServerSocket svrSocket = null;
 		UserID serverID = null;
@@ -49,8 +52,10 @@ public class StealthNetServer {
 		
 		while(serverID == null){
 			System.out.println("Logging in server");
-			serverID = UserID.login("server", "serverPASSWORDisCOMPLICATED19343298126192827209385749376138726348".toCharArray());
+			serverID = UserID.login(SERVER_ID, "serverPASSWORDisCOMPLICATED19343298126192827209385749376138726348".toCharArray());
 		}
+		
+		UserID.savePublic(serverID.uname, serverID.getPub());
 		//secureLayer = new SecureLayer();
 		//secureLayer.selfInitRSA();
 		
