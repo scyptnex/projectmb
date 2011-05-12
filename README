@@ -1,3 +1,14 @@
+Nic
+
+Ah, I read it wrong. It used the word secret so I assumed it was talking about the secret file exchange stuff, but obviously it's just talking about the private/public key files.
+
+I'll do the encryption if you like, this report won't take long.
+
+Don't look at my payment protocol code btw. I stopped caring about 20min into writing it. (And it's not quite done.)
+
+Also, I got bored.
+
+
 Alex
 
 I'm storing files local to the server, the historically remembered login credentials of users
