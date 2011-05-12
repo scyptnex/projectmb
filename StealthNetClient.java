@@ -681,7 +681,8 @@ public class StealthNetClient {
 					
 					if (wallet == null || (wallet != null && wallet.getSize() == 0))
 					{
-						wallet = new HashStalk(amount + 10);
+						wallet = new HashStalk(((amount / 100) + 1) * 100); //for testing
+						//wallet = new HashStalk(amount + 10);
 						
 						//Verify with bank here
 						
@@ -692,9 +693,15 @@ public class StealthNetClient {
 						
 					} else if (wallet.getSize() < amount) {
 						//Pay part of the fee
-						byte[] walletsize = StealthNetComms.itob(wallet.getSize());
+						int part = wallet.getSize();
+						byte[] walletsize = StealthNetComms.itob(part);
 						byte[] paypart = SecureLayer.byteJoin(wallet.getCoin(wallet.getSize()), walletsize);
 						stealthComms.sendPacket(StealthNetPacket.CMD_PAYPART, paypart);
+						
+						p = stealthComms.recvPacket();
+						if (p.command != StealthNetPacket.CMD_PAYPART) break;
+						
+						amount -= part;
 						
 						//Then generate a new hashstalk
 						wallet = new HashStalk(amount + 10);
@@ -707,8 +714,8 @@ public class StealthNetClient {
 						if (p.command != StealthNetPacket.CMD_HASHSTALK) break;
 					}
 					
-					byte[] walletsize = StealthNetComms.itob(wallet.getSize());
-					byte[] pay = SecureLayer.byteJoin(wallet.getCoin(wallet.getSize()), walletsize);
+					byte[] amountb = StealthNetComms.itob(amount);
+					byte[] pay = SecureLayer.byteJoin(wallet.getCoin(amount), amountb);
 					stealthComms.sendPacket(StealthNetPacket.CMD_PAY, pay);
 					
 					break;

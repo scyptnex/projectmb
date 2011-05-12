@@ -355,6 +355,7 @@ public class StealthNetServerThread extends Thread {
 						StealthNetPacket p = new StealthNetPacket();
 						
 						//Send amount owed
+						System.out.println("PAY" + cost);
 						stealthComms.sendPacket(StealthNetPacket.CMD_PAY, StealthNetComms.itob(cost));
 
 						p = stealthComms.recvPacket();
@@ -362,6 +363,7 @@ public class StealthNetServerThread extends Thread {
 						{
 							//Set up a new hash stalk
 							userInfo.hashTop = p.data;
+							System.out.println("HASHSTALK");
 							stealthComms.sendPacket(StealthNetPacket.CMD_HASHSTALK);
 							
 							//Now wait again for payment
@@ -387,6 +389,7 @@ public class StealthNetServerThread extends Thread {
 							}
 							
 							cost -= amount;
+							stealthComms.sendPacket(StealthNetPacket.CMD_PAYPART);
 							
 							p = stealthComms.recvPacket();
 							if (p.command == StealthNetPacket.CMD_HASHSTALK)
@@ -423,6 +426,7 @@ public class StealthNetServerThread extends Thread {
 							check = HashStalk.getHash(coin, amount);
 							if (!StealthNetComms.byteEqual(check, userInfo.hashTop))
 							{
+								System.out.println("Check failed");
 								stealthComms.sendPacket(StealthNetPacket.CMD_MSG,
 									"[*SVR*] Payment not accepted!");
 								break;
@@ -438,9 +442,12 @@ public class StealthNetServerThread extends Thread {
 								"[*SVR*] Payment error!");
 							break;
 						}
+					} else {
+						cost = secretInfo.cost;
 					}
 					
 					//If we got here, we know we have enough verified money to pay
+					System.out.println(userInfo.credits + ", " + cost);
 					userInfo.credits -= cost;
 					stealthComms.sendPacket(StealthNetPacket.CMD_BALANCE, Integer.toString(userInfo.credits));
 					
