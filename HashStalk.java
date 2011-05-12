@@ -29,15 +29,26 @@ public class HashStalk {
 	
 	public byte[] getCoin(int n)
 	{
-		return getHash(bottom, size - n);
+		if (size - n >= 0)
+		{
+			size -= n;
+			return getHash(bottom, size);
+		} else {
+			return null;
+		}
 	}
 	
-	public static boolean check(byte[] c, int n, byte[] t)
+	public int getSize()
 	{
-		return (getHash(c, n) == t);
+		return size;
 	}
 	
-	private static byte[] getHash(byte[] h, int n)
+	//public static boolean check(byte[] c, int n, byte[] t)
+	//{
+	//	return (getHash(c, n) == t);
+	//}
+	
+	public static byte[] getHash(byte[] h, int n)
 	{
 		MessageDigest sha = null;
 		
