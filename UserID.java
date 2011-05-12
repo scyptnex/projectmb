@@ -1,11 +1,10 @@
 
 import java.io.*;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.spec.InvalidKeySpecException;
+import java.security.*;
 import java.util.*;
-import javax.security.*;
+import java.security.interfaces.*;
+import java.security.spec.*;
+import java.security.*;
 import javax.security.auth.*;
 import javax.crypto.*;
 import javax.crypto.spec.*;
@@ -24,9 +23,13 @@ public class UserID {
 		try{
 			UserID attempt = load(uname, pass);
 			if(attempt != null) return attempt;
-			SecureLayer tempLayer = new SecureLayer();
-			tempLayer.selfInitRSA();
-			return new UserID(uname, pass, tempLayer.descMyPublic(), tempLayer.descMyPrivate());
+			SecureRandom rand = new SecureRandom(new SecureRandom().generateSeed(32));
+			KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+			keyPairGenerator.initialize(SecureLayer.RSA_LENGTH, rand);
+			KeyPair keyPair = keyPairGenerator.genKeyPair();
+			byte[] pubDesc = SecureLayer.keyDesc((RSAPublicKey)keyPair.getPublic());
+			byte[] priDesc = SecureLayer.keyDesc((RSAPrivateKey)keyPair.getPrivate());
+			return new UserID(uname, pass, pubDesc, priDesc);
 		}
 		catch(Exception e){
 			e.printStackTrace();

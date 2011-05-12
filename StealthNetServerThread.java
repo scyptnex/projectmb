@@ -47,13 +47,15 @@ public class StealthNetServerThread extends Thread {
     private String userID = null;
     private StealthNetComms stealthComms = null;
     private byte[] pubKey, priKey;
+    private SecureLayer secl;
 
     public StealthNetServerThread(Socket socket, UserID servID)  throws IOException {
         super("StealthNetServerThread");
         System.out.println("new thread");
         pubKey = servID.getPub();
         priKey = servID.getPri();
-        stealthComms = new StealthNetComms(new SecureLayer(pubKey, priKey));
+        secl = new SecureLayer(pubKey, priKey);
+        stealthComms = new StealthNetComms(secl);
         if (!stealthComms.acceptSession(socket))
         {
         	throw new IOException("Cannot initiate secure comms.");
@@ -206,6 +208,22 @@ public class StealthNetServerThread extends Thread {
                         System.out.println("user \"" + userID + "\" has logged in");
                         sendUserList();
 	                    sendSecretList();
+                    }
+                    byte[] tryPreviousPublic = UserID.getPublic(userID);
+                    if(tryPreviousPublic == null){
+                    	System.out.println("User " + userID + " has logged in for the first time");
+                    	UserID.savePublic(userID, secl.descYourPublic());
+                    }
+                    else{
+                    	System.out.println("User " + userID + " is logging in again");
+                    	if(secl.checkAuthenticity(tryPreviousPublic)){
+                    		System.out.println("Authenticity check passed");
+                    	}
+                    	else{
+                    		System.out.println("user \"" + userID + "\" failed authenticity");
+                            pckt.command = StealthNetPacket.CMD_LOGOUT;
+                            userID = null;
+                    	}
                     }
                     break;
 
