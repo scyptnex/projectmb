@@ -1,5 +1,5 @@
-ALEX
+Hey Nic,
 
-stop modifying SNClient
+It seems that chat is broken at the moment. the myid.equals(myID.uname) line seems to be the cause.
 
-Look at UID, it holds the client persistant RSA descriptions
+I'm gonna work on the report for a bit then fix up my payment stuff. I think we (and by that I mean 'I') should do a separate connection for the bank, but still within the server. So I'll do that later as well.
