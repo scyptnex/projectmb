@@ -46,7 +46,7 @@ public class StealthNetClient {
 	private SecureLayer secureLayer;
 	JTextField creditsBox;
 
-	private int credits = 100;		// CHANGEME: Give them 100 credits for demonstration purposes
+	private int credits = 0;		// CHANGEME: Give them 100 credits for demonstration purposes
 
 	private class SecretData {
 		String description = null;
@@ -383,7 +383,7 @@ public class StealthNetClient {
 			return;
 		}
 
-		// send reqest to server
+		// send request to server
 		String iAddr;
 		try {
 			iAddr = InetAddress.getLocalHost().toString();
@@ -403,7 +403,7 @@ public class StealthNetClient {
 			// wait for user to connect, then start file transfer
 			try {
 				ftpSocket.setSoTimeout(2000);  // 2 second timeout
-				StealthNetComms snComms = new StealthNetComms();
+				StealthNetComms snComms = new StealthNetComms(); //Need new stuff here
 				snComms.acceptSession(ftpSocket.accept());
 				new StealthNetFileTransfer(snComms,
 						fileSave.getDirectory() + fileSave.getFile(), false).start();
@@ -646,6 +646,13 @@ public class StealthNetClient {
 
 					new StealthNetFileTransfer(snComms,	fName, true).start();
 
+					break;
+					
+				case StealthNetPacket.CMD_BALANCE :
+					
+					//lololol
+					credits = new Integer (new String(pckt.data));
+					
 					break;
 
 				default :

@@ -32,6 +32,8 @@ public class StealthNetPacket {
 	public static final byte CMD_PUBLICKEY = 0x0A;
 	public static final byte CMD_MAC = 0x0B;
 	public static final byte CMD_INITAES = 0x0C;
+	public static final byte CMD_BALANCE = 0x0D;
+	public static final byte CMD_BANK = 0x0E;
 
 
 	private static final char[] HEXTABLE =

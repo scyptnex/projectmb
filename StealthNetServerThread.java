@@ -29,6 +29,7 @@ import java.util.*;
 public class StealthNetServerThread extends Thread {
     private class UserData {
         StealthNetServerThread userThread = null;
+        int credits = 0;
     }
     
 	private class SecretData {
@@ -338,6 +339,10 @@ public class StealthNetServerThread extends Thread {
 						String fName = secretInfo.dirname + secretInfo.filename;
 						userInfo.userThread.stealthComms.sendPacket(
 							StealthNetPacket.CMD_GETSECRET, fName + "@" + iAddr);
+						
+						userInfo.credits += secretInfo.cost;
+						userInfo.userThread.stealthComms.sendPacket(
+							StealthNetPacket.CMD_BALANCE, Integer.toString(userInfo.credits));
 					}
 
 					break;
