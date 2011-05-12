@@ -40,7 +40,7 @@ public class StealthNetClient {
 	private JButton loginBtn;
 	private StealthNetComms stealthComms = null;
 	private javax.swing.Timer stealthTimer;
-	private String userID = null;
+	private UserID myID = null;
 	private JTable buddyTable = null, secretTable = null;
 	private DefaultTableModel buddyListData = null, secretListData = null;
 	private SecureLayer secureLayer;
@@ -290,17 +290,18 @@ public class StealthNetClient {
 		
 		try {
 			SecurePrompt secp = new SecurePrompt(clientFrame);
-			userID = secp.getLogin();
+			String username = secp.getLogin();
 			char[] pass = secp.getPassword();
-			System.out.println("lname: " + userID + "\npass: " + pass);
-			if (userID == null) return;
+			UserID myID = UserID.login(username, pass);
+			System.out.println("lname: " + myID.uname + "\npass: " + myID.pass());
+			if (myID == null) return;
 			stealthComms = new StealthNetComms();
 			if (stealthComms.initiateSession(new Socket(serv, port)))
 			{
-				stealthComms.sendPacket(StealthNetPacket.CMD_LOGIN, userID);
+				stealthComms.sendPacket(StealthNetPacket.CMD_LOGIN, myID.uname);
 				stealthTimer.start();
 				msgTextBox.append("Connected to stealthnet.\n");
-				clientFrame.setTitle("stealthnet [" + userID + "]");
+				clientFrame.setTitle("stealthnet [" + myID.uname + "]");
 				loginBtn.setIcon(new ImageIcon("logout.gif"));
 				loginBtn.setToolTipText("Logout");
 			} else {
