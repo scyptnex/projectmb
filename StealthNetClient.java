@@ -292,7 +292,7 @@ public class StealthNetClient {
 			SecurePrompt secp = new SecurePrompt(clientFrame);
 			String username = secp.getLogin();
 			char[] pass = secp.getPassword();
-			UserID myID = UserID.login(username, pass);
+			myID = UserID.login(username, pass);
 			if (myID == null) return;
 			SecureLayer stealthLayer = new SecureLayer(myID.getPub(), myID.getPri());
 			stealthComms = new StealthNetComms(stealthLayer);
@@ -423,10 +423,16 @@ public class StealthNetClient {
 
 	private boolean isOKtoSendtoRow(int row) {
 		String myid, mystatus;
-
+		
+		System.out.println(buddyTable.getValueAt(row, 0));
+		
 		myid = (String)buddyTable.getValueAt(row, 0);
 		mystatus = (String)buddyTable.getValueAt(row,1);
 
+		System.out.println(myid + ", " + mystatus);
+		
+		System.out.println(myID == null);
+		
 		if (myid.equals(myID.uname)) {
 			msgTextBox.append("[*ERR*] Can't send to self.\n");
 			return false;

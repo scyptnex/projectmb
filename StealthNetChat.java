@@ -95,7 +95,7 @@ public class StealthNetChat extends Thread {
     }
 
     private synchronized void sendChat() {
-        String msg = "[" + userID + "] " + msgText.getText();
+        String msg = "[" + userID.uname + "] " + msgText.getText();
 
         chatTextBox.append(msg + "\n");
         if (stealthComms != null)
@@ -147,7 +147,7 @@ public class StealthNetChat extends Thread {
         Dimension screenDim = Toolkit.getDefaultToolkit().getScreenSize();
 
         // set up chat window
-        chatFrame = new JFrame("stealthnet chat [" + userID + "]");
+        chatFrame = new JFrame("stealthnet chat [" + userID.uname + "]");
         chatFrame.getContentPane().add(createGUI(), BorderLayout.CENTER);
         chatFrame.pack();
         msgText.requestFocus();
