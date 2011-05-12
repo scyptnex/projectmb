@@ -29,9 +29,9 @@ public class StealthNetChat extends Thread {
     private JTextArea chatTextBox;
     private JTextField msgText;
     private StealthNetComms stealthComms = null;
-    private String userID;
+    private UserID userID;
 
-    public StealthNetChat(String id, StealthNetComms snComms) {
+    public StealthNetChat(UserID id, StealthNetComms snComms) {
         userID = id;
         stealthComms = snComms;
     }

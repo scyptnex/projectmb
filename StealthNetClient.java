@@ -40,7 +40,7 @@ public class StealthNetClient {
 	private JButton loginBtn;
 	private StealthNetComms stealthComms = null;
 	private javax.swing.Timer stealthTimer;
-	private UserID myID = null;
+	private UserID userID = null;
 	private JTable buddyTable = null, secretTable = null;
 	private DefaultTableModel buddyListData = null, secretListData = null;
 	private SecureLayer secureLayer;
