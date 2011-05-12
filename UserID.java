@@ -31,6 +31,7 @@ public class UserID {
 		catch(Exception e){
 			e.printStackTrace();
 			System.err.println("There was some failure trying to login with username " + uname);
+			System.err.println("Either that username exists and the password was wrong, or there has been attempted hacking");
 			return null;
 		}
 	}
@@ -71,7 +72,7 @@ public class UserID {
 		ma.update(pubDesc);
 		byte[] expectedHash = ma.doFinal(priDesc);
 
-		System.out.println(HashStalk.hexify(publen) + "\n" + HashStalk.hexify(prilen) + "\n" + HashStalk.hexify(pubDesc) + "\n" + HashStalk.hexify(priDesc) + "\n" + HashStalk.hexify(hash));
+		//System.out.println(HashStalk.hexify(publen) + "\n" + HashStalk.hexify(prilen) + "\n" + HashStalk.hexify(pubDesc) + "\n" + HashStalk.hexify(priDesc) + "\n" + HashStalk.hexify(hash));
 
 		for(int i=0; i<hash.length; i++){
 			if(hash[i] != expectedHash[i]){
@@ -107,8 +108,8 @@ public class UserID {
 			fos.write(rsaPrivate);//ci.update(rsaPrivate));
 			fos.write(hash);//ci.doFinal(hash));
 			fos.close();
-			System.out.println(rsaPublic.length + rsaPrivate.length + 40 + (MAC_LENGTH/8));
-			System.out.println(HashStalk.hexify(publen) + "\n" + HashStalk.hexify(prilen) + "\n" + HashStalk.hexify(rsaPublic) + "\n" + HashStalk.hexify(rsaPrivate) + "\n" + HashStalk.hexify(hash));
+			//System.out.println(rsaPublic.length + rsaPrivate.length + 40 + (MAC_LENGTH/8));
+			//System.out.println(HashStalk.hexify(publen) + "\n" + HashStalk.hexify(prilen) + "\n" + HashStalk.hexify(rsaPublic) + "\n" + HashStalk.hexify(rsaPrivate) + "\n" + HashStalk.hexify(hash));
 			return true;
 		}
 		catch(Exception e){
@@ -124,7 +125,12 @@ public class UserID {
 		rsaPrivate = SecureLayer.byteClone(pri);
 
 		System.out.println("lname: " + uname + "\npass: " + pass());
-		System.out.println(SecureLayer.btos(rsaPublic));
+		try{
+			System.out.println("public hash: " + HashStalk.hexify(grabMac(pass()).doFinal(pub)));
+		}
+		catch(Exception e){
+			System.err.println("If this happened then something is seriously wrong with java's security implementation");
+		}
 		if(!saveSelf()){
 			System.out.println("User already exists, we wont overwrite the file");
 		}
