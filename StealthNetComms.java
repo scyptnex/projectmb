@@ -26,12 +26,14 @@
 /* Import Libraries **********************************************************/
 
 import java.net.*;
+import java.security.SecureRandom;
 import java.io.*;
 
 /* StealthNetComms class *****************************************************/
 
 public class StealthNetComms {
 	private static final char[] HEXTABLE = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+	private static final int NONCE_SIZE = 32;
 	public static String getDefaultServerName(){
 		return "localhost";
 	}
@@ -44,6 +46,7 @@ public class StealthNetComms {
 	private BufferedReader dataIn;          // input data stream
 	public final SecureLayer secureLayer;
 	private int counter;
+	SecureRandom nonce;
 	
 	public static class CommsException extends IOException{
 		public CommsException(String message){
@@ -114,6 +117,10 @@ public class StealthNetComms {
 			}
 			
 			counter = 0;
+			byte[] seed = new SecureRandom().generateSeed(32);
+			System.out.println(HashStalk.hexify(seed));
+			nonce = new SecureRandom(seed);
+			sendData(secureLayer.getRSAEncrypted(seed));
 			
 		} catch (Exception e) {
 			System.err.println("Connection terminated.");
@@ -162,6 +169,9 @@ public class StealthNetComms {
 			/* Send decrypted IV */
 			sendData(secureLayer.getRSAEncrypted(iv));
 			
+			data = recvData();
+			System.out.println(HashStalk.hexify(secureLayer.getRSADecrypted(data)));
+			nonce = new SecureRandom(secureLayer.getRSADecrypted(data));
 			counter = 0;
 					
 		} catch (Exception e) {
@@ -210,7 +220,9 @@ public class StealthNetComms {
 	public boolean sendPacket(StealthNetPacket pckt) {
 		if (dataOut == null) return false;
 		try {
-			byte[] clear = SecureLayer.byteJoin(itob(counter), pckt.toBytes());
+			byte[] n = new byte[NONCE_SIZE];
+			nonce.nextBytes(n);
+			byte[] clear = SecureLayer.byteJoin(n, pckt.toBytes());
 		    sendData(secureLayer.sendAES(clear));
 		    
 		    counter++;
@@ -224,10 +236,13 @@ public class StealthNetComms {
 	public StealthNetPacket recvPacket() throws IOException {
 		byte[] data = secureLayer.receiveAES(recvData());
 		byte[] ctr = new byte[4];
-		byte[] rest = new byte[data.length - 4];
-		SecureLayer.byteSplit(data, ctr, rest);
+		byte[] their_nonce = new byte[NONCE_SIZE];
+		byte[] my_nonce = new byte[NONCE_SIZE];
+		byte[] rest = new byte[data.length - NONCE_SIZE];
+		nonce.nextBytes(my_nonce);
+		SecureLayer.byteSplit(data, their_nonce, rest);
 		
-		if (btoi(ctr) != counter)
+		if (!byteEqual(my_nonce, their_nonce))
 		{
 			throw new IOException("Replay attack detected");
 		}
