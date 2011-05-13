@@ -119,7 +119,17 @@ public class StealthNetComms {
 			System.err.println("Connection terminated.");
 			return false;
 		}
-
+		
+		try{
+			byte[] cosign = SecureLayer.stob("the cake is a lie");
+			byte[] signed = secureLayer.countersign(cosign, true);
+			this.sendPacket(StealthNetPacket.CMD_MSG, signed);
+		}
+		catch(Exception e){
+			e.printStackTrace();
+			System.err.println("Signing test failed");
+		}
+		
 		return true;
 	}
 
@@ -167,6 +177,17 @@ public class StealthNetComms {
 		} catch (Exception e) {
 			System.err.println("Connection terminated.");
 			return false;
+		}
+		try{
+			StealthNetPacket snp = this.recvPacket();
+			System.out.println("signing test: " + snp.command + ", " + StealthNetPacket.CMD_MSG);
+			byte[] signed = snp.data;
+			byte[] unsigned = secureLayer.countersign(signed, false);
+			System.out.println(SecureLayer.btos(unsigned));
+		}
+		catch(Exception e){
+			e.printStackTrace();
+			System.err.println("signing test failed");
 		}
 		return true;
 	}
