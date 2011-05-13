@@ -50,6 +50,7 @@ public class StealthNetServerThread extends Thread {
     private StealthNetComms stealthComms = null;
     private byte[] pubKey, priKey;
     private final SecureLayer secl;
+    private final SecureLayer abank;
 
     public StealthNetServerThread(Socket socket, UserID servID)  throws IOException {
         super("StealthNetServerThread");
@@ -57,6 +58,8 @@ public class StealthNetServerThread extends Thread {
         pubKey = servID.getPub();
         priKey = servID.getPri();
         secl = new SecureLayer(pubKey, priKey);
+        abank = new SecureLayer(pubKey, priKey);
+        abank.initRSAYou(UserID.getPublic(StealthNetServer.bank.uname));
         stealthComms = new StealthNetComms(secl);
         if (!stealthComms.acceptSession(socket))
         {
@@ -365,10 +368,10 @@ public class StealthNetServerThread extends Thread {
 							byte[] top = new byte[HashStalk.HASH_NUM_BYTES];
 							//Acting as the bank we sign the tuple
 							//If this was real you'd check it first
-							stealthComms.sendPacket(StealthNetPacket.CMD_BANK, p.data);
+							stealthComms.sendPacket(StealthNetPacket.CMD_BANK, StealthNetServer.bankLayer.countersign(p.data, true));
 							
 							p = stealthComms.recvPacket();
-							SecureLayer.byteSplit(p.data, unameb, top);
+							SecureLayer.byteSplit(abank.countersign(p.data, false), unameb, top);
 							
 							//Set up a new hash stalk
 							userInfo.hashTop = top;
@@ -407,10 +410,10 @@ public class StealthNetServerThread extends Thread {
 								byte[] top = new byte[HashStalk.HASH_NUM_BYTES];
 								//Acting as the bank we sign the tuple
 								//If this was real you'd check it first
-								stealthComms.sendPacket(StealthNetPacket.CMD_BANK, p.data);
+								stealthComms.sendPacket(StealthNetPacket.CMD_BANK, StealthNetServer.bankLayer.countersign(p.data, true));
 								
 								p = stealthComms.recvPacket();
-								SecureLayer.byteSplit(p.data, unameb, top);
+								SecureLayer.byteSplit(abank.countersign(p.data, false), unameb, top);
 								
 								//Set up a new hash stalk
 								userInfo.hashTop = top;

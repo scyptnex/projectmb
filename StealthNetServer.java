@@ -28,6 +28,8 @@ import java.net.*;
 public class StealthNetServer {
 	
 	public static final String SERVER_ID = "server";
+    static public final UserID bank = UserID.login("bank", "heHEnesw6gaThEy4d5n8Vespu2UThesw".toCharArray());
+    static public final SecureLayer bankLayer = new SecureLayer(bank.getPub(), bank.getPri());
 	
 	public static void main(String[] args) throws IOException {
 		ServerSocket svrSocket = null;
@@ -56,6 +58,7 @@ public class StealthNetServer {
 		}
 		
 		UserID.savePublic(serverID.uname, serverID.getPub());
+		UserID.savePublic(bank.uname, bank.getPub());
 		//secureLayer = new SecureLayer();
 		//secureLayer.selfInitRSA();
 		
