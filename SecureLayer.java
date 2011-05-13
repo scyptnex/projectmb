@@ -28,8 +28,9 @@ public class SecureLayer {
 	private RSAPublicKey myPublic;
 	private RSAPrivateKey myPrivate;
 	private Cipher outCipher;
-	private Cipher outDeCipher;
 	private Cipher inCipher;
+	private Cipher reverseIn;
+	private Cipher reverseOut;
 	
 	//aes bits
 	private byte[] rawKey;
@@ -119,8 +120,9 @@ public class SecureLayer {
 		myPublic = null;
 		myPrivate = null;
 		outCipher = null;
-		outDeCipher = null;
 		inCipher = null;
+		reverseIn = null;
+		reverseOut = null;
 		
 		rawKey = null;
 		initVec = null;
@@ -150,14 +152,26 @@ public class SecureLayer {
 	public boolean checkAuthenticity(byte[] expectedYourPublic){
 		try{
 			byte[] keyDesc = descYourPublic();
+			boolean passed = true;
 			if(expectedYourPublic.length != keyDesc.length){
-				return false;
+				passed = false;
 			}
-			for(int i=0; i<expectedYourPublic.length; i++){
-				if(expectedYourPublic[i] != keyDesc[i] ) return false;
+			if(passed) for(int i=0; i<expectedYourPublic.length; i++){
+				if(expectedYourPublic[i] != keyDesc[i] ){
+					passed = false;
+					break;
+				}
 			}
-			System.out.println("Authenticity check passed");
-			return true;
+			if(!passed){
+				System.err.println("Authenticity check failed");
+				System.err.println(" public fingerprint: " + HashStalk.hexify(HashStalk.getHash(expectedYourPublic, 1)));
+				System.err.println(" public fingerprint: " + HashStalk.hexify(HashStalk.getHash(expectedYourPublic, 1)));
+			}
+			else{
+				System.out.println("Authenticity check passed:");
+				System.out.println(" public fingerprint: " + HashStalk.hexify(HashStalk.getHash(expectedYourPublic, 1)));
+			}
+			return passed;
 		}
 		catch(Exception e){
 			e.printStackTrace();
@@ -263,8 +277,8 @@ public class SecureLayer {
 			yourPublic = descToRSAPublic(keyDesc);
 			outCipher = Cipher.getInstance(RSA_STANDARD);
 			outCipher.init(Cipher.ENCRYPT_MODE, yourPublic);
-			outDeCipher = Cipher.getInstance(RSA_STANDARD);
-			outDeCipher.init(Cipher.DECRYPT_MODE, yourPublic);
+			reverseIn = Cipher.getInstance(RSA_STANDARD);
+			reverseIn.init(Cipher.DECRYPT_MODE, yourPublic);
 		}
 		catch (InvalidKeyException e) {
 			throw new SecurityException("RSA me Init: Invalid Key");
@@ -283,6 +297,8 @@ public class SecureLayer {
 			myPrivate = descToRSAPrivate(priDesc);
 			inCipher = Cipher.getInstance(RSA_STANDARD);
 			inCipher.init(Cipher.DECRYPT_MODE, myPrivate);
+			reverseOut = Cipher.getInstance(RSA_STANDARD);
+			reverseOut.init(Cipher.ENCRYPT_MODE, myPrivate);
 		}
 		catch (InvalidKeyException e) {
 			throw new SecurityException("RSA me Init: Invalid Key");
@@ -366,17 +382,18 @@ public class SecureLayer {
 		}
 	}
 	
-	public byte[] getRSASelfSigned(byte[] message) throws SecurityException{
-		if(outCipher == null) throw new SecurityException("Unable to encrypt before Receiver RSA key has been initialized");
+	public byte[] countersign(byte[] message, boolean signing) throws SecurityException{
+		Cipher c = (signing ? reverseOut : reverseIn);
+		if(c == null) throw new SecurityException("Unable to sign, we dont have the right key yet");
 		try {
-			return outDeCipher.doFinal(message);
+			return c.doFinal(message);
 		}
 		catch (BadPaddingException e) {
-			throw new SecurityException("RSA Encrypt: Bad Padding");
+			throw new SecurityException("RSA Signing: Bad Padding");
 		}
 		catch (IllegalBlockSizeException e) {
 			e.printStackTrace();
-			throw new SecurityException("RSA Encrypt: Illegal Block Size");
+			throw new SecurityException("RSA Signing: Illegal Block Size");
 		}
 	}
 	

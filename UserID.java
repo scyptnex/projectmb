@@ -129,7 +129,7 @@ public class UserID {
 
 		System.out.println("lname: " + uname + "\npass: " + pass());
 		try{
-			System.out.println("public hash: " + HashStalk.hexify(grabMac(pass()).doFinal(pub)));
+			System.out.println("public hash: " + HashStalk.hexify(HashStalk.getHash(rsaPublic, 1)));
 		}
 		catch(Exception e){
 			System.err.println("If this happened then something is seriously wrong with java's security implementation");
