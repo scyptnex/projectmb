@@ -45,7 +45,6 @@ public class StealthNetComms {
 	private PrintWriter dataOut;            // output data stream
 	private BufferedReader dataIn;          // input data stream
 	public final SecureLayer secureLayer;
-	private int counter;
 	SecureRandom nonce;
 	
 	public static class CommsException extends IOException{
@@ -116,7 +115,6 @@ public class StealthNetComms {
 				throw new CommsException("IVs do not match!");
 			}
 			
-			counter = 0;
 			byte[] seed = new SecureRandom().generateSeed(32);
 			System.out.println(HashStalk.hexify(seed));
 			nonce = new SecureRandom(seed);
@@ -182,7 +180,6 @@ public class StealthNetComms {
 			data = recvData();
 			System.out.println(HashStalk.hexify(secureLayer.getRSADecrypted(data)));
 			nonce = new SecureRandom(secureLayer.getRSADecrypted(data));
-			counter = 0;
 					
 		} catch (Exception e) {
 			System.err.println("Connection terminated.");
@@ -245,9 +242,6 @@ public class StealthNetComms {
 			nonce.nextBytes(n);
 			byte[] clear = SecureLayer.byteJoin(n, pckt.toBytes());
 		    sendData(secureLayer.sendAES(clear));
-		    
-		    counter++;
-		    if (counter == Integer.MAX_VALUE) counter = 0;
 		} catch (SecureLayer.SecurityException e) {
 			System.out.println("Security failed on comms");
 		}
@@ -267,9 +261,6 @@ public class StealthNetComms {
 		{
 			throw new IOException("Replay attack detected");
 		}
-		
-		counter++;
-		if (counter == Integer.MAX_VALUE) counter = 0;
 		
 		return new StealthNetPacket(rest);
 	}
