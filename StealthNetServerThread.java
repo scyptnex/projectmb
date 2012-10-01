@@ -31,6 +31,7 @@ public class StealthNetServerThread extends Thread {
         StealthNetServerThread userThread = null;
         int credits = 0;
         byte[] hashTop = null;
+        int hashLength = 0;
         SecureLayer sl = secl;
     }
     
@@ -366,15 +367,19 @@ public class StealthNetServerThread extends Thread {
 						{
 							byte[] unameb = new byte[SecureLayer.stob(userID).length];
 							byte[] top = new byte[HashStalk.HASH_NUM_BYTES];
+							byte[] tmp = new byte[unameb.length + top.length];
+							byte[] length = new byte[p.data.length - tmp.length];
 							//Acting as the bank we sign the tuple
 							//If this was real you'd check it first
 							stealthComms.sendPacket(StealthNetPacket.CMD_BANK, StealthNetServer.bankLayer.countersign(p.data, true));
 							
 							p = stealthComms.recvPacket();
 							SecureLayer.byteSplit(abank.countersign(p.data, false), unameb, top);
+							SecureLayer.byteSplit(abank.countersign(p.data, false), tmp, length);
 							
 							//Set up a new hash stalk
 							userInfo.hashTop = top;
+							userInfo.hashLength = StealthNetComms.btoi(length);
 							System.out.println("HASHSTALK");
 							stealthComms.sendPacket(StealthNetPacket.CMD_HASHSTALK);
 							
@@ -393,7 +398,7 @@ public class StealthNetServerThread extends Thread {
 							
 							//Check coin is valid
 							check = HashStalk.getHash(coin, amount);
-							if (!StealthNetComms.byteEqual(check, userInfo.hashTop))
+							if (!StealthNetComms.byteEqual(check, userInfo.hashTop) || amount > userInfo.hashLength)
 							{
 								stealthComms.sendPacket(StealthNetPacket.CMD_MSG,
 									"[*SVR*] Payment not accepted!");
@@ -408,15 +413,19 @@ public class StealthNetServerThread extends Thread {
 							{
 								byte[] unameb = new byte[SecureLayer.stob(userID).length];
 								byte[] top = new byte[HashStalk.HASH_NUM_BYTES];
+								byte[] tmp = new byte[unameb.length + top.length];
+								byte[] length = new byte[p.data.length - tmp.length];
 								//Acting as the bank we sign the tuple
 								//If this was real you'd check it first
 								stealthComms.sendPacket(StealthNetPacket.CMD_BANK, StealthNetServer.bankLayer.countersign(p.data, true));
 								
 								p = stealthComms.recvPacket();
 								SecureLayer.byteSplit(abank.countersign(p.data, false), unameb, top);
+								SecureLayer.byteSplit(abank.countersign(p.data, false), tmp, length);
 								
 								//Set up a new hash stalk
 								userInfo.hashTop = top;
+								userInfo.hashLength = StealthNetComms.btoi(length);
 								stealthComms.sendPacket(StealthNetPacket.CMD_HASHSTALK);
 								p = stealthComms.recvPacket();
 							} else {
@@ -445,7 +454,7 @@ public class StealthNetServerThread extends Thread {
 							
 							//Check coin is valid
 							check = HashStalk.getHash(coin, amount);
-							if (!StealthNetComms.byteEqual(check, userInfo.hashTop))
+							if (!StealthNetComms.byteEqual(check, userInfo.hashTop) || amount > userInfo.hashLength)
 							{
 								System.out.println("Check failed");
 								stealthComms.sendPacket(StealthNetPacket.CMD_MSG,
@@ -457,6 +466,7 @@ public class StealthNetServerThread extends Thread {
 							//This ensure we can't respend coins
 							userInfo.credits = amount;
 							userInfo.hashTop = coin;
+							userInfo.hashLength -= amount;
 							
 						} else {
 							stealthComms.sendPacket(StealthNetPacket.CMD_MSG,
